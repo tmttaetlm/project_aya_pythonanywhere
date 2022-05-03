@@ -12,13 +12,6 @@ body {
     background-image: url('../img/oriental.png');;
 }
 
-select {
-    height: 30px;
-    background-color: #88888888;
-    border: none;
-    border-radius: 5px;
-}
-
 .header {
     color: #fff;
     background-color: #2a4759;
@@ -40,17 +33,18 @@ select {
 
 .users-list {
     display: flex;
-    flex-wrap: nowrap;
-    overflow-x: scroll;
-    overflow-y: hidden;
-    margin-top: calc(1vh + 5%);
-    padding: 20px 10px;
+    flex-wrap: wrap;
+    /*overflow-x: scroll;
+    overflow-y: hidden;*/
+    margin: 0 auto;
+    margin-top: 10px;
+    padding: 20px 15px;
 }
 .user-card {
     background: #fff;
-    min-width: 15vw;
-    max-height: 60vh;
-    margin-right: 15px;
+    width: calc(91vw / 6);
+    height: 50vh;
+    margin: 10px;
     border-radius: 20px;
     padding: 10px;
     box-shadow: 3px 3px 10px rgba(0,0,0,0.5);
@@ -78,25 +72,24 @@ select {
 .user-name {
     font-weight: bold;
     font-size: 18pt;
-    margin: 15px 0 0 5px;
-    max-height: 5%;
+    margin: 10px 0 10px 5px;
+    max-height: 10%;
     overflow: hidden;
 }
-.user-desc {
+.user-dop {
     color: #888888;
-    margin: 10px 0 0 5px;
-    min-height: 15%;
-    max-height: 15%;
+    margin: 5px 0 0 5px;
     overflow: hidden;
 }
 .user-phone {
     font-style: italic;
-    margin: 10px 0 0 5px;
+    text-align: center;
+    margin: 20px 0 0 5px;
 }
 .user-tg {
     width: 100%;
     padding: 10px;
-    margin-top: 15px;
+    margin-top: 10px;
     border-radius: 20px;
     text-align: center;
     cursor: pointer;
@@ -133,4 +126,24 @@ select {
 .hide {
   opacity: 0;
   transition: 0.5s;
+}
+
+.filters {
+  display: flex;
+  justify-content: center;
+}
+.filters_header {
+  margin-top: 20px;
+  text-align: center;
+  color: #2a4759;
+  text-shadow: 2px 2px 2px rgba(150, 150, 150, 0.75);
+}
+select[name=filter] {
+  background-color: #88888888;
+  border: none;
+  border-radius: 5px;
+  font-size: 14pt;
+  text-align: center;
+  padding: 10px 15px;
+  margin: 10px 5px;
 }

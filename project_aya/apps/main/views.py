@@ -9,5 +9,10 @@ def index(request):
     if User.objects.count() == 0:
         param = {}
     else:
-        param = {'specialists': User.objects.filter(role="Исполнитель")}
+        users = User.objects.filter(role="Исполнитель")
+        for user in users:
+            user.phone = '+'+str(user.phone) if user.phone != '-' else '-'
+        cities = User.objects.all().values_list('city').distinct()
+        param = {'specialists': users,
+                 'cities': cities}
     return render(request, 'main/list.html', param)

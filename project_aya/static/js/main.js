@@ -12,7 +12,7 @@ window.onload = function() {
     });
 
     //Catches mousemove and send to handler
-    document.addEventListener("mouseover", function (event) {
+    /*document.addEventListener("mouseover", function (event) {
         mouseoverHandler(event.target, event.pageX, event.pageY);
     });
     document.addEventListener("mouseout", function (event) {
@@ -20,7 +20,7 @@ window.onload = function() {
     });
     document.addEventListener("mousemove", function (event) {
         mousemoveHandler(event.target, event.pageX, event.pageY);
-    });
+    });*/
 }
 
 function clickHandler(obj) {
