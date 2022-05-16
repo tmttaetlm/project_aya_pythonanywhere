@@ -84,7 +84,7 @@ def control(bot, message):
         bot_user.save()
     # Редактирование профиля исполнителя
     if message.text == '💪 Изменить специализацию':
-        bot_user.mode = 'edit_speciality'
+        bot_user.mode = 'editSpecialisation'
         bot_user.save()
         bot.send_message(message.from_user.id, 'Выберите специализацию', reply_markup = keyboard('speciality'))
     if message.text == '⏰ Изменить опыт работы':

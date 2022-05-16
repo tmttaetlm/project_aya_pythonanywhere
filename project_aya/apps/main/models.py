@@ -51,6 +51,17 @@ class Message(models.Model):
         verbose_name = 'Сообщение'
         verbose_name_plural = 'Сообщения'
 
+class Specialisation(models.Model):
+    clue = models.CharField('Ключ', max_length = 50, null = True)
+    name = models.CharField('Название', max_length = 1000, null = True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = 'Специализация'
+        verbose_name_plural = 'Специализации'
+
 class Info(models.Model):
     text = models.CharField('Текст', max_length = 1000, null = True)
     clue = models.CharField('Ключ', max_length = 50, null = True)

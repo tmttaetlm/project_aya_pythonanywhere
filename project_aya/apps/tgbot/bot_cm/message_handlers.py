@@ -56,6 +56,10 @@ def handler(bot, message):
         elif bot_user.role == 'Исполнитель':
             registration_specialist(bot, message)
         return
+    if bot_user.mode == 'registration' and bot_user.step == 6:
+        if message.text:
+            bot.send_message(message.from_user.id, 'Фотография не обнаружена! Отправьте фотографию как вложение.')
+            return
     if bot_user.mode == 'registration' and bot_user.step == 7:
         bot_user.step = 8
         bot_user.save()

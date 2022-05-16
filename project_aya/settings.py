@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'main.apps.MainConfig',
     'tgbot.apps.TgbotConfig',
+    'django_filters',
 ]
 
 MIDDLEWARE = [

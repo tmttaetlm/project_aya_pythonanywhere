@@ -1,7 +1,8 @@
-from django.urls import path, include
+from django.urls import path, re_path, include
 from . import views
 
-urlpatterns =[
+urlpatterns = [
     path('', views.index, name = 'index'),
+    path('user-filter', views.user_filter, name = 'user-filter'),
     path('bot/', include('tgbot.urls')),
 ]

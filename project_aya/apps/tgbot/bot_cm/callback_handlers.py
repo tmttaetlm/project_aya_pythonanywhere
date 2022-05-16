@@ -1,4 +1,4 @@
-from main.models import User, Vacancy, Message, Info
+from main.models import User, Vacancy, Message, Info, Specialisation
 from .keyboards import keyboard
 from .functions import registration_customer, registration_specialist, search_master
 
@@ -80,8 +80,9 @@ def callback(bot, callback_message):
         if bot_user.mode == 'search':
             Info.objects.create(clue='sp_spec', text=callback_message.data[callback_message.data.find('_')+1:len(callback_message.data)])
             search_master(bot, callback_message)
-        elif bot_user.mode == 'edit_speciality':
-            bot_user.speciality = callback_message.data[callback_message.data.index('_')+1:len(callback_message.data)]
+        elif bot_user.mode == 'editSpecialisation':
+            spec = Specialisation.objects.get(clue=callback_message.data[callback_message.data.index('_')+1:len(callback_message.data)])
+            bot_user.speciality = spec.name
             bot_user.mode = None
             bot_user.save()
             bot.send_message(callback_message.from_user.id, 'Специализация изменена.')

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import User, Vacancy, Message, Info
+from .models import User, Vacancy, Message, Info, Specialisation
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
@@ -16,4 +16,10 @@ class VacancyAdmin(admin.ModelAdmin):
 class InfoAdmin(admin.ModelAdmin):
     list_display = ("clue", "text")
 
-admin.site.register(Message)
+@admin.register(Message)
+class MessageAdmin(admin.ModelAdmin):
+    list_display = ("clue", "text")
+
+@admin.register(Specialisation)
+class SpecialityAdmin(admin.ModelAdmin):
+    list_display = ("clue", "name")

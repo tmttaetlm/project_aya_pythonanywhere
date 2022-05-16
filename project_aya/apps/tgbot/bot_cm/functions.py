@@ -1,6 +1,9 @@
+from django.conf import settings
+from django.core.validators import URLValidator
+from django.core.exceptions import ValidationError
 from telebot import types
 from datetime import datetime
-from main.models import User, Vacancy, Info
+from main.models import User, Vacancy, Info, Specialisation
 from .keyboards import keyboard
 
 def create_one_click_vacancy(bot, data):
@@ -46,6 +49,9 @@ def search_master(bot, data):
         else:
             msg = 'Специалисты, соответствующие вашим критериям не найдены:\n\n'
         bot.send_message(data.from_user.id, msg)
+        sp_city.delete()
+        sp_exp.delete()
+        sp_spec.delete()
         return
     return
 
@@ -173,7 +179,11 @@ def registration_specialist (bot, data, skip = 0):
             bot_user.msg_id = res.id
             bot_user.save()
         else:
-            bot_user.photo_url = data.photo[-1].file_id
+            file = bot.get_file(data.photo[-1].file_id)
+            downloaded_file = bot.download_file(file.file_path)
+            with open(settings.STATIC_ROOT+'/img/user_photos/'+str(bot_user.chat_id)+'.jpg', 'wb') as new_file:
+                new_file.write(downloaded_file)
+                bot_user.photo_url = data.photo[-1].file_id
             bot_user.msg_id = res.id
             bot_user.save()
         return
