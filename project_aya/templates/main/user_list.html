@@ -7,14 +7,16 @@
             <div class="{{u.class}}" style="{{u.photo_url}}" ></div>
             <div class="main_info">
               <div class="user-name">{{u.name}}</div>
-              <div class="user-dop">{{u.city}}</div>
-              <div class="user-dop">{{u.speciality_name}}</div>
-              <div class="user-dop">{{u.experience_desc}}</div>
-              <div class="user-phone">{{u.phone}}</div>
+              <div class="user-dop"><i class="fa-solid fa-city"></i>{{u.city}}</div>
+              <div class="user-dop"><i class="fa-solid fa-graduation-cap"></i>{{u.speciality_name}}</div>
+              <div class="user-dop"><i class="fa-solid fa-handshake"></i>{{u.experience_desc}}</div>
             </div>
           </div>
           <div class="user-desc">{{u.description}}</div>
-          <div class="user-tg"><a href="https://t.me/{{u.user}}" target="blank"></a>Написать</div>
+          <div class="card-buttons">
+            <div class="user-portfolio {{u.portfolio_url}}"><a href="{{u.portfolio_url}}" target="blank"></a>{{u.portfolio_text}}</div>
+            <div class="user-tg"><a href="https://t.me/{{u.user}}" target="blank"></a>Написать</div>
+          </div>
         </div>
     {% endfor %}
 {% else %}

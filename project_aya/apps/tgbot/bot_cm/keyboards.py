@@ -14,7 +14,7 @@ def keyboard(type, params = {}):
     if type == 'specialist':
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard = True)
         keyboard.add(types.KeyboardButton('📇 Мой аккаунт'))
-        keyboard.add(types.KeyboardButton('📝 Написать админу'))
+        keyboard.add(types.KeyboardButton('📨 Написать админу'))
         keyboard.add(types.KeyboardButton('📰 Купить рекламу в боте'))
     if type == 'admin':
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard = True)
@@ -27,8 +27,8 @@ def keyboard(type, params = {}):
         keyboard.add(types.InlineKeyboardButton('🕐 В запланированное время (разово)', callback_data = 'send_on_time'))
     if type == 'phone_request':
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard = True)
-        keyboard.add(types.KeyboardButton(text = 'Отправить телефон', request_contact = True))
-        keyboard.add(types.KeyboardButton(text = 'Пропустить'))
+        keyboard.add(types.KeyboardButton(text = '📱 Отправить номер телефона', request_contact = True))
+        keyboard.add(types.KeyboardButton(text = '➡️ Пропустить'))
     if type == 'cities':
         keyboard = types.InlineKeyboardMarkup()
         keyboard.row(types.InlineKeyboardButton('Неважно', callback_data = 'city_Неважно'),types.InlineKeyboardButton('Almaty', callback_data = 'city_Almaty'),types.InlineKeyboardButton('Nur-Sultan', callback_data = 'city_Nur-Sultan'))
@@ -92,6 +92,11 @@ def keyboard(type, params = {}):
         keyboard.add(types.KeyboardButton('✌ Изменить описание о себе'))
         keyboard.add(types.KeyboardButton('🚮 Удалить мой аккаунт'))
         keyboard.add(types.KeyboardButton('😕 Я не Специалист'))
+        keyboard.add(types.KeyboardButton('🔙 Назад'))
+    if type == 'my_account':
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard = True)
+        keyboard.add(types.KeyboardButton('🗂 Посмотреть аккаунт'))
+        keyboard.add(types.KeyboardButton('📝 Редактировать аккаунт'))
         keyboard.add(types.KeyboardButton('🔙 Назад'))
     if type == 'remove_keyboard':
         keyboard = types.ReplyKeyboardRemove()

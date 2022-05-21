@@ -42,14 +42,23 @@ def start_message(message):
                 res = bot.send_message(message.chat.id, messages[0].text, reply_markup = keyboard('start'))
                 user[0].msg_id = res.id
                 user[0].save()
-            elif user.step == 0:
+            elif user[0].step == 0:
                 bot.delete_message(message.from_user.id, user[0].msg_id)
                 res = bot.send_message(message.from_user.id, 'Выберите кто Вы:', reply_markup = keyboard('start'))
+                user[0].msg_id = res.id
+                user[0].save()
+            elif user[0].step == 9:
+                res = bot.send_message(message.from_user.id, 'Ваш аккаунт на подтверждении. Ожидайте ответа администратора.')
                 user[0].msg_id = res.id
                 user[0].save()
             else:
                 if user[0].role == 'Заказчик': registration_customer(message)
                 elif user[0].role == 'Исполнитель': registration_specialist(message)
+        elif user[0].mode == 'approved':
+            if user[0].role == 'Заказчик': markup = keyboard('customer')
+            elif user[0].role == 'Исполнитель': markup = keyboard('specialist')
+            else: markup = keyboard('admin')
+            bot.send_message(message.chat.id, 'Рады снова Вас видеть, '+user[0].name, reply_markup = markup)
         else:
             if user[0].role == 'Заказчик': markup = keyboard('customer')
             elif user[0].role == 'Исполнитель': markup = keyboard('specialist')

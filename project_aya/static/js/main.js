@@ -16,7 +16,7 @@ window.onload = function() {
 }
 
 function clickHandler(obj) {
-  if (obj.classList[0] == 'user-tg') {
+  if (obj.classList[0] == 'user-tg' || obj.classList[0] == 'user-portfolio') {
     obj.children[0].click();
   }
 }

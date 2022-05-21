@@ -58,12 +58,13 @@ margin: 0 auto;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  background: #fff;
   width: 503px;
-  border-radius: 10px;
   padding: 10px;
   margin-bottom: 10px;
-  box-shadow: 3px 3px 10px rgba(0,0,0,0.5);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255);
   transition: 0.5s;
 }
 .no-user-img {
@@ -75,9 +76,8 @@ margin: 0 auto;
   background-repeat: no-repeat;
   background-position: center;
   border-radius: 10px;
-  min-height: 200px;
-  min-width: 200px;
-  pointer-events: none;
+  min-height: 150px;
+  min-width: 150px;
 }
 .has-user-img {
   text-align: center;
@@ -87,9 +87,8 @@ margin: 0 auto;
   background-repeat: no-repeat;
   background-position: center;
   border-radius: 10px;
-  min-height: 200px;
-  min-width: 200px;
-  pointer-events: none;
+  min-height: 150px;
+  min-width: 150px;
 }
 .user-role {
   font-size: 10pt;
@@ -99,22 +98,19 @@ margin: 0 auto;
   padding: 5px 0;
   margin-top: 5px;
   border-radius: 10px;
-  pointer-events: none;
 }
 .user-name {
   font-weight: bold;
   font-size: 24px;
   margin: 10px 0 15px 5px;
-  max-height: 14%;
+  max-height: 20%;
   overflow: hidden;
-  pointer-events: none;
 }
 .user-dop, .user-phone {
   font-size: 18px;
   color: #656f75;
   margin: 5px 0 0 5px;
   overflow: hidden;
-  pointer-events: none;
 }
 .user-desc {
   font-style: italic;
@@ -123,7 +119,7 @@ margin: 0 auto;
   word-wrap: break-word;
 }
 .user-tg {
-  width: 100%;
+  width: 49%;
   padding: 10px;
   margin-top: 15px;
   border-radius: 10px;
@@ -132,14 +128,33 @@ margin: 0 auto;
   color: #d7ebf7;
   background-color: #2a4759;
 }
-.user-tg a {
+.user-portfolio {
+  width: 49%;
+  padding: 10px;
+  margin-top: 15px;
+  border-radius: 10px;
+  text-align: center;
+  cursor: pointer;
+  color: #2a4759;
+  background-color: #bfbfbf;
+}
+.user-tg a, .user-portfolio a {
   display: none;
+}
+.no-url {
+  pointer-events: none;
+  color: #2a475955;
+  background-color: #bfbfbf55;
 }
 .top-line {
   display: flex;
 }
 .main_info {
   margin-left: 5px;
+}
+.card-buttons {
+  display: flex;
+  justify-content: space-between;
 }
 
 .filters {
@@ -152,11 +167,14 @@ margin: 0 auto;
   color: #2a4759;
 }
 select[name=filter] {
-  background-color: #96a1a6;
+  background-color: #96a1a688;
   border: none;
   border-radius: 10px;
   font-size: 14pt;
   text-align: center;
   padding: 10px 15px;
   margin: 10px 5px;
+}
+.fa-solid {
+  margin-right: 10px;
 }

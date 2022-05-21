@@ -73,7 +73,7 @@ def registration_customer(bot, data):
     if bot_user.step == 2:
         bot.delete_message(chat_id, bot_user.msg_id)
         res = bot.send_message(chat_id, '☺️ Как к Вам обращаться?', reply_markup = keyboard('remove_keyboard'))
-        if data.text == 'Пропустить':
+        if data.text == '➡️ Пропустить':
             bot_user.phone = '-'
             bot_user.msg_id = res.id
             bot_user.save()
@@ -126,7 +126,7 @@ def registration_specialist (bot, data, skip = 0):
     if bot_user.step == 2:
         bot.delete_message(chat_id, bot_user.msg_id)
         res = bot.send_message(chat_id, 'Как к Вам обращаться?', reply_markup = keyboard('remove_keyboard'))
-        if data.text == 'Пропустить':
+        if data.text == '➡️ Пропустить':
             bot_user.phone = '-'
             bot_user.msg_id = res.id
             bot_user.save()
@@ -162,7 +162,7 @@ def registration_specialist (bot, data, skip = 0):
         return
     if bot_user.step == 6:
         t_keyboard = types.InlineKeyboardMarkup()
-        t_keyboard.add(types.InlineKeyboardButton('Пропустить', callback_data = 'skip_photo'))
+        t_keyboard.add(types.InlineKeyboardButton('➡️ Пропустить', callback_data = 'skip_photo'))
         bot.delete_message(chat_id, bot_user.msg_id)
         res = bot.send_message(chat_id, 'Загрузите вашу фотография', reply_markup = t_keyboard)
         bot_user.speciality = data.data[data.data.index('_')+1:len(data.data)]
@@ -171,7 +171,7 @@ def registration_specialist (bot, data, skip = 0):
         return
     if bot_user.step == 7:
         t_keyboard = types.InlineKeyboardMarkup()
-        t_keyboard.add(types.InlineKeyboardButton('Пропустить', callback_data = 'skip_portfolio'))
+        t_keyboard.add(types.InlineKeyboardButton('➡️ Пропустить', callback_data = 'skip_portfolio'))
         bot.delete_message(chat_id, bot_user.msg_id)
         res = bot.send_message(chat_id, 'Отправьте ссылку на портфолио', reply_markup = t_keyboard)
         if skip:
@@ -189,7 +189,7 @@ def registration_specialist (bot, data, skip = 0):
         return
     if bot_user.step == 8:
         t_keyboard = types.InlineKeyboardMarkup()
-        t_keyboard.add(types.InlineKeyboardButton('Пропустить', callback_data = 'skip_description'))
+        t_keyboard.add(types.InlineKeyboardButton('➡️ Пропустить', callback_data = 'skip_description'))
         bot.delete_message(chat_id, bot_user.msg_id)
         res = bot.send_message(chat_id, 'Раскажите немного о себе', reply_markup = t_keyboard)
         if skip:

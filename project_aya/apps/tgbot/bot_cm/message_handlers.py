@@ -10,7 +10,7 @@ def handler(bot, message):
     if len(admin) == 0: admin_id = 248598993
     else: admin_id = admin[0].chat_id
 
-    if message.text == 'Пропустить':
+    if message.text == '➡️ Пропустить':
         if bot_user.mode == 'edit_phone':
             bot_user.phone = '-'
             bot_user.mode = None
@@ -23,6 +23,11 @@ def handler(bot, message):
                 registration_customer(bot, message)
             elif bot_user.role == 'Исполнитель':
                 registration_specialist(bot, message)
+        return
+    if message.text == '❌ Отмена':
+        bot_user.mode = 'edit_account'
+        bot_user.save()
+        bot.send_message(message.from_user.id, 'Редактирование аккаунта', reply_markup = keyboard('edit_customer_account') if bot_user.role == 'Заказчик' else keyboard('edit_specialist_account'))
         return
     if message.contact:
         if bot_user.mode == 'edit_phone':

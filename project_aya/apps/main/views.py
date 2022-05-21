@@ -64,6 +64,8 @@ def get_users_array(users):
             'speciality_clue': user.speciality,
             'speciality_name': '',
             'photo_url': '',
+            'portfolio_url': 'no-url',
+            'portfolio_text': 'Смотреть портфолио',
             'class': ''
         }
         if user.experience == 'less-one':
@@ -79,5 +81,9 @@ def get_users_array(users):
             tmp_arr['class'] = 'has-user-img'
         else:
             tmp_arr['class'] = 'no-user-img'
+        if user.portfolio_url != '-':
+            tmp_arr['portfolio_url'] = user.portfolio_url
+        else:
+            tmp_arr['portfolio_text'] = 'Нет портфолио'
         users_arr.append(tmp_arr)
     return users_arr
