@@ -15,7 +15,7 @@ def control(bot, message):
 
     # Меню администратора
     if message.text == '👤 Пользователи':
-        users = User.objects.exclude(role='Админ').order_by('-registration_date')[:10]
+        users = User.objects.exclude(role='Админ').exclude(mode='registration').order_by('-registration_date')[:10]
         msg = 'Последние 10 зарегистрировавщихся пользователей:\n\n'
         for user in users:
             msg += 'Имя: '+user.name+'\nНомер телефона: '+user.phone+'\nГород: '+user.city+'\nДата регистрации: '+user.registration_date.strftime('%d.%m.%Y %H:%M:%S')+'\nНаписать в телеграм: @'+user.user+'\n\n'

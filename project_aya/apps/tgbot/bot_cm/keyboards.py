@@ -57,8 +57,9 @@ def keyboard(type, params = {}):
         keyboard.add(types.InlineKeyboardButton('🚫 Отклонить', callback_data = 'reject_user_'+str(params['user'])))
     if type == 'approve_vacancy':
         keyboard = types.InlineKeyboardMarkup()
-        keyboard.add(types.InlineKeyboardButton('✅ Подтвердить (+ в канал)', callback_data = 'to_channel_'+str(params['vacancy'])))
-        keyboard.add(types.InlineKeyboardButton('✅ Подтвердить (+ внутрь бота)', callback_data = 'to_bot_'+str(params['vacancy'])))
+        keyboard.add(types.InlineKeyboardButton('✅ Подтвердить и отправить в канал', callback_data = 'to_channel_'+str(params['vacancy'])))
+        keyboard.add(types.InlineKeyboardButton('✅ Подтвердить и отправить внутрь бота', callback_data = 'to_bot_'+str(params['vacancy'])))
+        keyboard.add(types.InlineKeyboardButton('✅ Подтвердить и отправить в канал и внутрь бота', callback_data = 'to_channel_bot_'+str(params['vacancy'])))
         keyboard.add(types.InlineKeyboardButton('🚫 Отклонить', callback_data = 'reject_vacancy_'+str(params['vacancy'])))
     if type == 'approve_text':
         keyboard = types.InlineKeyboardMarkup()
@@ -85,8 +86,8 @@ def keyboard(type, params = {}):
         keyboard.add(types.KeyboardButton('✅ Изменить имя'))
         keyboard.add(types.KeyboardButton('🏢 Изменить город'))
         keyboard.add(types.KeyboardButton('📱 Изменить номер телефона'))
-        keyboard.add(types.KeyboardButton('💪 Изменить специализацию'))
-        keyboard.add(types.KeyboardButton('⏰ Изменить опыт работы'))
+        keyboard.add(types.KeyboardButton('🧰 Изменить специализацию'))
+        keyboard.add(types.KeyboardButton('🗃 Изменить опыт работы'))
         keyboard.add(types.KeyboardButton('📂 Изменить ссылку портфолио'))
         keyboard.add(types.KeyboardButton('📷 Изменить фото'))
         keyboard.add(types.KeyboardButton('✌ Изменить описание о себе'))

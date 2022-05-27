@@ -1,4 +1,5 @@
 import re
+from django import forms
 from main.models import User, Message
 from .keyboards import keyboard
 from .functions import registration_customer, registration_specialist, create_one_click_vacancy
@@ -66,9 +67,14 @@ def handler(bot, message):
             bot.send_message(message.from_user.id, 'Фотография не обнаружена! Отправьте фотографию как вложение.')
             return
     if bot_user.mode == 'registration' and bot_user.step == 7:
-        bot_user.step = 8
-        bot_user.save()
-        registration_specialist(bot, message)
+        f = forms.URLField()
+        try:
+            f.clean(message.text)
+            bot_user.step = 8
+            bot_user.save()
+            registration_specialist(bot, message)
+        except:
+            bot.send_message(message.from_user.id, 'Некорректная ссылка! Введите корректную ссылку в виде "https://example.com. Допускается ввожить только одну ссылку."')
         return
     if bot_user.mode == 'registration' and bot_user.step == 8:
         bot_user.step = 9
@@ -103,10 +109,10 @@ def handler(bot, message):
         bot_user.save()
         bot.send_message(message.from_user.id, 'Раздел о себе обновлен.', reply_markup = keyboard('customer') if bot_user.role == 'Заказчик' else keyboard('specialist'))
     if bot_user.mode == 'send_now':
-        bot.delete_message(admin_id, bot_user.msg_id)
         users = User.objects.exclude(role='Админ')
         msg = message.text + f'\n\n<b>Сообщение создано и отправлено администратором. Если требуется ответ, напишите администратору @{admin[0].user} напрямую</b>'
         for usr in users: bot.send_message(usr.chat_id, msg, parse_mode = 'HTML')
+        bot.delete_message(admin_id, bot_user.msg_id)
         bot.send_message(admin_id, 'Сообщение отправлено всем пользователям бота.')
         bot_user.mode = None
         bot_user.save()

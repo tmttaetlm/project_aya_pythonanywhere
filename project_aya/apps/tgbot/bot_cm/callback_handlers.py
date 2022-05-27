@@ -126,6 +126,9 @@ def callback(bot, callback_message):
     if callback_message.data.find('confirm_user') >= 0:
         user_id = callback_message.data[callback_message.data.rfind('_')+1:len(callback_message.data)]
         tmp_user = User.objects.get(chat_id=user_id)
+        tmp_user.mode = None
+        tmp_user.step = 0
+        tmp_user.save()
         bot.delete_message(user_id, tmp_user.msg_id)
         bot.delete_message(admin_id, admin[0].msg_id)
         bot.send_message(user_id, '✅ Администрация подтвердила Ваш аккаунт!', reply_markup = keyboard('customer') if tmp_user.role == 'Заказчик' else keyboard('specialist'))
@@ -134,62 +137,21 @@ def callback(bot, callback_message):
     if callback_message.data.find('reject_user') >= 0:
         user_id = callback_message.data[callback_message.data.rfind('_')+1:len(callback_message.data)]
         tmp_user = User.objects.get(chat_id=user_id)
+        tmp_user.delete()
         bot.delete_message(user_id, tmp_user.msg_id)
-        person = User.objects.get(chat_id=user_id)
-        person.delete()
         bot.delete_message(admin_id, admin[0].msg_id)
         bot.send_message(user_id, '🚫 Администрация отклонила Ваш аккаунт! Попробуйте зарегистрироваться заново.')
         bot.send_message(admin_id, 'Аккаунт пользователя '+tmp_user.user+'(Имя: '+tmp_user.name+' ID: '+user_id+') отклонён')
         return
     if callback_message.data.find('to_bot') >= 0:
-        vacancy_id = callback_message.data[callback_message.data.rfind('_')+1:len(callback_message.data)]
-        _vacancy = Vacancy.objects.get(id=vacancy_id)
-        users = User.objects.filter(city=_vacancy.city, role='Исполнитель')
-        for usr in users:
-            name = User.objects.filter(chat_id=_vacancy.chat_id).values('name')
-            msg_text = '⭕️ Новый Заказ\n\n'
-            msg_text += '▫️ Описание:\n'+_vacancy.role+'\n\n'
-            msg_text += '👤 Имя заказчика: '+name[0]+'\n'
-            bot.send_message(usr.chat_id, msg_text, reply_markup = keyboard('vacancy_to_bot', {'username': usr.user}))
-        bot_user = User.objects.get(chat_id=_vacancy.chat_id)
-        bot.delete_message(_vacancy.chat_id, bot_user.msg_id)
-        bot.send_message(_vacancy.chat_id, '✅ Администрация подтвердила Ваше объявление с ID '+vacancy_id)
-        bot.delete_message(admin_id, admin[0].msg_id)
-        bot.send_message(admin_id, 'Вы подтвердили и отправили пользователям бота объявление с ID '+vacancy_id)
+        confirm_ads('to_bot')
         return
     if callback_message.data.find('to_channel') >= 0:
-        vacancy_id = callback_message.data[callback_message.data.rfind('_')+1:len(callback_message.data)]
-        _vacancy = Vacancy.objects.get(id=vacancy_id)
-        bot_user = User.objects.get(chat_id=_vacancy.chat_id)
-        msg_text = '⭕️ Новый Заказ\n\n'
-        msg_text += '▫️ Описание:\n'+_vacancy.text+'\n\n'
-        msg_text += '👤 Имя заказчика: '+bot_user.name+'\n'
-        groups = {
-            'Неважно': '@kazakhstan_jumys',
-            'Almaty': '@almaty_jumys',
-            'Nur-Sultan': '@astana_jumys',
-            'Shymkent': '@shymkent_job',
-            'Kyzylorda': '@qyzylorda_job',
-            'Karagandy': '@karagandy_job',
-            'Taraz': '@taraz_job',
-            'Aktau': '@aktau_jumys',
-            'Atyrau': '@atyrau_job',
-            'Aktobe': '@jobaktobe',
-            'Oral': '@oral_job',
-            'Petropavl': '@petropavl_job',
-            'Pavlodar': '@job_pavlodar',
-            'Kostanay': '@kostanay_job',
-            'Oskemen': '@oskemen_job',
-            'Semey': '@semey_job',
-            'Taldykorgan': '@taldykorgan_jumys',
-            'Zhezkazgan': '@jezkazgan_jumys'
-        }
-        bot.send_message('@tmttae', msg_text, reply_markup = keyboard('vacancy_to_bot', {'username': bot_user.user}))
-        #bot.send_message(groups.get(_vacancy.city), msg_text, reply_markup = keyboard('vacancy_to_bot', {'username': bot_user.user}))
-        bot.delete_message(_vacancy.chat_id, bot_user.msg_id)
-        bot.send_message(_vacancy.chat_id, '✅ Администрация подтвердила Ваше объявление с ID '+vacancy_id)
-        bot.delete_message(admin_id, admin[0].msg_id)
-        bot.send_message(admin_id, 'Вы подтвердили и отправили в канал объявление с ID '+vacancy_id)
+        confirm_ads('to_channel')
+        return
+    if callback_message.data.find('to_channel_bot') >= 0:
+        confirm_ads('to_bot')
+        confirm_ads('to_channel')
         return
     if callback_message.data.find('reject_vacancy') >= 0:
         vacancy_id = callback_message.data[callback_message.data.rfind('_')+1:len(callback_message.data)]
@@ -219,3 +181,51 @@ def callback(bot, callback_message):
         return
     ################
     #bot.answer_callback_message_query(callback_message.id)
+
+def confirm_ads(mode):
+    vacancy_id = callback_message.data[callback_message.data.rfind('_')+1:len(callback_message.data)]
+    _vacancy = Vacancy.objects.get(id=vacancy_id)
+    if mode == 'to_bot':
+        users = User.objects.filter(city=_vacancy.city, role='Исполнитель')
+        for usr in users:
+            name = User.objects.filter(chat_id=_vacancy.chat_id).values('name')
+            msg_text = '⭕️ Новый Заказ\n\n'
+            msg_text += '▫️ Описание:\n'+_vacancy.role+'\n\n'
+            msg_text += '👤 Имя заказчика: '+name[0]+'\n'
+            bot.send_message(usr.chat_id, msg_text, reply_markup = keyboard('vacancy_to_bot', {'username': usr.user}))
+        bot_user = User.objects.get(chat_id=_vacancy.chat_id)
+        bot.delete_message(_vacancy.chat_id, bot_user.msg_id)
+        bot.send_message(_vacancy.chat_id, '✅ Администрация подтвердила Ваше объявление с ID '+vacancy_id)
+        bot.delete_message(admin_id, admin[0].msg_id)
+        bot.send_message(admin_id, 'Вы подтвердили и отправили пользователям бота объявление с ID '+vacancy_id)
+    if mode == 'to_channel':
+        bot_user = User.objects.get(chat_id=_vacancy.chat_id)
+        msg_text = '⭕️ Новый Заказ\n\n'
+        msg_text += '▫️ Описание:\n'+_vacancy.text+'\n\n'
+        msg_text += '👤 Имя заказчика: '+bot_user.name+'\n'
+        groups = {
+            'Неважно': '@kazakhstan_jumys',
+            'Almaty': '@almaty_jumys',
+            'Nur-Sultan': '@astana_jumys',
+            'Shymkent': '@shymkent_job',
+            'Kyzylorda': '@qyzylorda_job',
+            'Karagandy': '@karagandy_job',
+            'Taraz': '@taraz_job',
+            'Aktau': '@aktau_jumys',
+            'Atyrau': '@atyrau_job',
+            'Aktobe': '@jobaktobe',
+            'Oral': '@oral_job',
+            'Petropavl': '@petropavl_job',
+            'Pavlodar': '@job_pavlodar',
+            'Kostanay': '@kostanay_job',
+            'Oskemen': '@oskemen_job',
+            'Semey': '@semey_job',
+            'Taldykorgan': '@taldykorgan_jumys',
+            'Zhezkazgan': '@jezkazgan_jumys'
+        }
+        #bot.send_message('@tmttae', msg_text, reply_markup = keyboard('vacancy_to_bot', {'username': bot_user.user}))
+        bot.send_message(groups.get(_vacancy.city), msg_text, reply_markup = keyboard('vacancy_to_bot', {'username': bot_user.user}))
+        bot.delete_message(_vacancy.chat_id, bot_user.msg_id)
+        bot.send_message(_vacancy.chat_id, '✅ Администрация подтвердила Ваше объявление с ID '+vacancy_id)
+        bot.delete_message(admin_id, admin[0].msg_id)
+        bot.send_message(admin_id, 'Вы подтвердили и отправили в канал объявление с ID '+vacancy_id)
