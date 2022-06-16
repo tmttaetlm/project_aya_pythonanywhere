@@ -1,6 +1,6 @@
 from main.models import User, Vacancy, Message, Info, Specialisation
 from .keyboards import keyboard
-from .functions import registration_customer, registration_specialist, search_master
+from .functions import registration_customer, registration_specialist, search_master, not_confirmed_users
 
 def callback(bot, callback_message):
     admin = User.objects.filter(role='Админ')
@@ -36,7 +36,7 @@ def callback(bot, callback_message):
             bot_user.city = callback_message.data[callback_message.data.index('_')+1:len(callback_message.data)]
             bot_user.mode = None
             bot_user.save()
-            bot.send_message(callback_message.from_user.id, 'Город изменён.')
+            bot.send_message(callback_message.from_user.id, 'Город изменён.', reply_markup = keyboard('edit_customer_account') if bot_user.role == 'Заказчик' else keyboard('edit_specialist_account'))
         elif bot_user.mode.rfind('one_click_vacancy_') >= 0:
             _vacancy = Vacancy.objects.get(id=bot_user.mode[bot_user.mode.rfind('_')+1:len(bot_user.mode)])
             _vacancy.city = callback_message.data[callback_message.data.find('_')+1:len(callback_message.data)]
@@ -70,7 +70,7 @@ def callback(bot, callback_message):
             bot_user.experience = callback_message.data[callback_message.data.index('_')+1:len(callback_message.data)]
             bot_user.mode = None
             bot_user.save()
-            bot.send_message(callback_message.from_user.id, 'Опыт работы изменен.')
+            bot.send_message(callback_message.from_user.id, 'Опыт работы изменен.', reply_markup = keyboard('edit_specialist_account'))
         else:
             bot_user.step = 5
             bot_user.save()
@@ -80,12 +80,12 @@ def callback(bot, callback_message):
         if bot_user.mode == 'search':
             Info.objects.create(clue='sp_spec', text=callback_message.data[callback_message.data.find('_')+1:len(callback_message.data)])
             search_master(bot, callback_message)
-        elif bot_user.mode == 'editSpecialisation':
+        elif bot_user.mode == 'edit_specialisation':
             spec = Specialisation.objects.get(clue=callback_message.data[callback_message.data.index('_')+1:len(callback_message.data)])
-            bot_user.speciality = spec.name
+            bot_user.speciality = spec.clue
             bot_user.mode = None
             bot_user.save()
-            bot.send_message(callback_message.from_user.id, 'Специализация изменена.')
+            bot.send_message(callback_message.from_user.id, 'Специализация изменена.', reply_markup = keyboard('edit_specialist_account'))
         else:
             bot_user.step = 6
             bot_user.save()
@@ -127,7 +127,7 @@ def callback(bot, callback_message):
         user_id = callback_message.data[callback_message.data.rfind('_')+1:len(callback_message.data)]
         tmp_user = User.objects.get(chat_id=user_id)
         tmp_user.mode = None
-        tmp_user.step = 0
+        tmp_user.step = None
         tmp_user.save()
         bot.delete_message(user_id, tmp_user.msg_id)
         bot.delete_message(admin_id, admin[0].msg_id)
@@ -144,14 +144,14 @@ def callback(bot, callback_message):
         bot.send_message(admin_id, 'Аккаунт пользователя '+tmp_user.user+'(Имя: '+tmp_user.name+' ID: '+user_id+') отклонён')
         return
     if callback_message.data.find('to_bot') >= 0:
-        confirm_ads('to_bot')
+        confirm_ads(bot, admin_id, admin, 'to_bot', callback_message)
         return
     if callback_message.data.find('to_channel') >= 0:
-        confirm_ads('to_channel')
+        confirm_ads(bot, admin_id, admin, 'to_channel', callback_message)
         return
     if callback_message.data.find('to_channel_bot') >= 0:
-        confirm_ads('to_bot')
-        confirm_ads('to_channel')
+        confirm_ads(bot, admin_id, admin, 'to_bot', callback_message)
+        confirm_ads(bot, admin_id, admin, 'to_channel', callback_message)
         return
     if callback_message.data.find('reject_vacancy') >= 0:
         vacancy_id = callback_message.data[callback_message.data.rfind('_')+1:len(callback_message.data)]
@@ -179,10 +179,13 @@ def callback(bot, callback_message):
         admin[0].save()
         Message.objects.create(clue='on_time_msg')
         return
+    if callback_message.data.find('next_') >= 0 or callback_message.data.find('prev_') >= 0:
+        num = callback_message.data[callback_message.data.index('_')+1:len(callback_message.data)]
+        if num != '-': not_confirmed_users(bot, num)
     ################
     #bot.answer_callback_message_query(callback_message.id)
 
-def confirm_ads(mode):
+def confirm_ads(bot, admin_id, admin, mode, callback_message):
     vacancy_id = callback_message.data[callback_message.data.rfind('_')+1:len(callback_message.data)]
     _vacancy = Vacancy.objects.get(id=vacancy_id)
     if mode == 'to_bot':

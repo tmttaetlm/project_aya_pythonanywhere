@@ -20,6 +20,7 @@ def keyboard(type, params = {}):
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard = True)
         keyboard.add(types.KeyboardButton('👤 Пользователи'))
         keyboard.add(types.KeyboardButton('📄 Объявления'))
+        keyboard.add(types.KeyboardButton('📑 Неподтвержденные пользователи'))
         keyboard.add(types.KeyboardButton('💬 Опубликовать сообщение'))
     if type == 'send_to_bot':
         keyboard = types.InlineKeyboardMarkup()
@@ -44,17 +45,23 @@ def keyboard(type, params = {}):
         keyboard.add(types.InlineKeyboardButton('Более 3 лет', callback_data = 'exp_more-three'))
     if type == 'speciality':
         keyboard = types.InlineKeyboardMarkup()
-        keyboard.add(types.InlineKeyboardButton('SMM продвижение', callback_data = 'spec_SMM'),types.InlineKeyboardButton('Дизайн', callback_data = 'spec_design'))
-        keyboard.add(types.InlineKeyboardButton('Модель', callback_data = 'spec_model'),types.InlineKeyboardButton('SEO оптимизация', callback_data = 'spec_SEO'))
-        keyboard.add(types.InlineKeyboardButton('CRM', callback_data = 'spec_CRM'),types.InlineKeyboardButton('Контекстная реклама', callback_data = 'spec_contextads'))
-        keyboard.add(types.InlineKeyboardButton('Таргетированная реклама', callback_data = 'spec_targetads'),types.InlineKeyboardButton('Копирайтинг/Перевод', callback_data = 'spec_translate'))
-        keyboard.add(types.InlineKeyboardButton('Разработка сайта (конструкторы)', callback_data = 'spec_sites'),types.InlineKeyboardButton('Разработка чат-бота', callback_data = 'spec_bots'))
-        keyboard.add(types.InlineKeyboardButton('Видеосъемка', callback_data = 'spec_vidoe'),types.InlineKeyboardButton('Фотосъемка', callback_data = 'spec_photo'))
-        keyboard.add(types.InlineKeyboardButton('Продажи', callback_data = 'spec_sells'),types.InlineKeyboardButton('Другое', callback_data = 'spec_other'))
+        keyboard.add(types.InlineKeyboardButton('SMM продвижение', callback_data = 'spec_SMM'), types.InlineKeyboardButton('Дизайн', callback_data = 'spec_design'))
+        keyboard.add(types.InlineKeyboardButton('Модель', callback_data = 'spec_model'), types.InlineKeyboardButton('SEO оптимизация', callback_data = 'spec_SEO'))
+        keyboard.add(types.InlineKeyboardButton('Маркетолог', callback_data = 'spec_marketolog'), types.InlineKeyboardButton('CRM', callback_data = 'spec_CRM'))
+        keyboard.add(types.InlineKeyboardButton('Контекстная реклама', callback_data = 'spec_contextads'), types.InlineKeyboardButton('Таргетированная реклама', callback_data = 'spec_targetads'))
+        keyboard.add(types.InlineKeyboardButton('Разработка сайта (конструкторы)', callback_data = 'spec_sites'), types.InlineKeyboardButton('Разработка чат-бота', callback_data = 'spec_bots'))
+        keyboard.add(types.InlineKeyboardButton('Видеосъемка', callback_data = 'spec_vidoe'), types.InlineKeyboardButton('Фотосъемка', callback_data = 'spec_photo'))
+        keyboard.add(types.InlineKeyboardButton('Продажи', callback_data = 'spec_sells'), types.InlineKeyboardButton('Копирайтинг/Перевод', callback_data = 'spec_translate'))
+        keyboard.add(types.InlineKeyboardButton('Продюссер', callback_data = 'spec_producer'), types.InlineKeyboardButton('Сторисмейкер', callback_data = 'spec_storiesmaker'))
+        keyboard.add(types.InlineKeyboardButton('Другое', callback_data = 'spec_other'))
     if type == 'approve_user':
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(types.InlineKeyboardButton('✅ Подтвердить', callback_data = 'confirm_user_'+str(params['user'])))
         keyboard.add(types.InlineKeyboardButton('🚫 Отклонить', callback_data = 'reject_user_'+str(params['user'])))
+    if type == 'postapprove_user':
+        keyboard = types.InlineKeyboardMarkup()
+        keyboard.add(types.InlineKeyboardButton('<< Предыдущий', callback_data = 'prev_'+str(params['prev'])), types.InlineKeyboardButton('>> Следующий', callback_data = 'next_'+str(params['next'])))
+        keyboard.add(types.InlineKeyboardButton('✅ Подтвердить', callback_data = 'confirm_user_'+str(params['user'])), types.InlineKeyboardButton('🚫 Отклонить', callback_data = 'reject_user_'+str(params['user'])))
     if type == 'approve_vacancy':
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(types.InlineKeyboardButton('✅ Подтвердить и отправить в канал', callback_data = 'to_channel_'+str(params['vacancy'])))
@@ -99,6 +106,9 @@ def keyboard(type, params = {}):
         keyboard.add(types.KeyboardButton('🗂 Посмотреть аккаунт'))
         keyboard.add(types.KeyboardButton('📝 Редактировать аккаунт'))
         keyboard.add(types.KeyboardButton('🔙 Назад'))
+    if type == 'chat_to_user':
+        keyboard = types.InlineKeyboardMarkup()
+        keyboard.add(types.InlineKeyboardButton('📨 '+params['button'], url = 'https://t.me/'+params['username']))
     if type == 'remove_keyboard':
         keyboard = types.ReplyKeyboardRemove()
 

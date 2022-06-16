@@ -16,7 +16,7 @@ def handler(bot, message):
             bot_user.phone = '-'
             bot_user.mode = None
             bot_user.save()
-            bot.send_message(message.from_user.id, 'Номер телефона изменён.', reply_markup = keyboard('customer') if bot_user.role == 'Заказчик' else keyboard('specialist'))
+            bot.send_message(message.from_user.id, 'Номер телефона изменён.', reply_markup = keyboard('edit_customer_account') if bot_user.role == 'Заказчик' else keyboard('edit_specialist_account'))
         else:
             bot_user.step = 2
             bot_user.save()
@@ -35,7 +35,7 @@ def handler(bot, message):
             bot_user.phone = message.contact.phone_number
             bot_user.mode = None
             bot_user.save()
-            bot.send_message(message.from_user.id, 'Номер телефона изменён.', reply_markup = keyboard('customer') if bot_user.role == 'Заказчик' else keyboard('specialist'))
+            bot.send_message(message.from_user.id, 'Номер телефона изменён.', reply_markup = keyboard('edit_customer_account') if bot_user.role == 'Заказчик' else keyboard('edit_specialist_account'))
         else:
             bot_user.step = 2
             bot_user.save()
@@ -46,7 +46,7 @@ def handler(bot, message):
             bot_user.photo_url = message.photo[-1].file_id
             bot_user.mode = None
             bot_user.save()
-            bot.send_message(message.from_user.id, 'Ваше фото обновлено.', reply_markup = keyboard('customer') if bot_user.role == 'Заказчик' else keyboard('specialist'))
+            bot.send_message(message.from_user.id, 'Ваше фото обновлено.', reply_markup = keyboard('edit_specialist_account'))
         else:
             bot_user.step = 7
             bot_user.save()
@@ -67,6 +67,9 @@ def handler(bot, message):
             bot.send_message(message.from_user.id, 'Фотография не обнаружена! Отправьте фотографию как вложение.')
             return
     if bot_user.mode == 'registration' and bot_user.step == 7:
+        url_correct = 1
+        if not message.text.startswith('https://') and not message.text.startswith('http://'):
+            url_correct = 0
         f = forms.URLField()
         try:
             f.clean(message.text)
@@ -74,7 +77,9 @@ def handler(bot, message):
             bot_user.save()
             registration_specialist(bot, message)
         except:
-            bot.send_message(message.from_user.id, 'Некорректная ссылка! Введите корректную ссылку в виде "https://example.com. Допускается ввожить только одну ссылку."')
+            url_correct = 0
+        if url_correct == 0:
+            bot.send_message(message.from_user.id, 'Некорректная ссылка! Введите корректную ссылку в виде "https://example.com". Допускается вводить только одну ссылку.')
         return
     if bot_user.mode == 'registration' and bot_user.step == 8:
         bot_user.step = 9
@@ -97,17 +102,17 @@ def handler(bot, message):
         bot_user.name = message.text
         bot_user.mode = None
         bot_user.save()
-        bot.send_message(message.from_user.id, 'Имя изменёно.', reply_markup = keyboard('customer') if bot_user.role == 'Заказчик' else keyboard('specialist'))
+        bot.send_message(message.from_user.id, 'Имя изменёно.', reply_markup = keyboard('edit_customer_account') if bot_user.role == 'Заказчик' else keyboard('edit_specialist_account'))
     if bot_user.mode == 'edit_portfolio':
         bot_user.portfolio_url = message.text
         bot_user.mode = None
         bot_user.save()
-        bot.send_message(message.from_user.id, 'Ссылка на портфолио обновлена.', reply_markup = keyboard('customer') if bot_user.role == 'Заказчик' else keyboard('specialist'))
+        bot.send_message(message.from_user.id, 'Ссылка на портфолио обновлена.', reply_markup = keyboard('edit_specialist_account'))
     if bot_user.mode == 'edit_description':
         bot_user.description = message.text
         bot_user.mode = None
         bot_user.save()
-        bot.send_message(message.from_user.id, 'Раздел о себе обновлен.', reply_markup = keyboard('customer') if bot_user.role == 'Заказчик' else keyboard('specialist'))
+        bot.send_message(message.from_user.id, 'Раздел о себе обновлен.', reply_markup = keyboard('edit_specialist_account'))
     if bot_user.mode == 'send_now':
         users = User.objects.exclude(role='Админ')
         msg = message.text + f'\n\n<b>Сообщение создано и отправлено администратором. Если требуется ответ, напишите администратору @{admin[0].user} напрямую</b>'

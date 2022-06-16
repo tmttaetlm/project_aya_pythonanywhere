@@ -25,20 +25,18 @@ margin: 0 auto;
   height: 90px;
   line-height: 90px;
   font-size: 36pt;
-  display: flex;
-  justify-content: space-between;
-  padding: 0 20%;
 }
 .headerText {
-  white-space: nowrap;
-  overflow: hidden;
   background-image: url('../img/logo.png');
   background-size: 60px;
   background-repeat: no-repeat;
-  width: 45%;
+  width: 1024px;
   color: #d7ebf7;
-  text-align: right;
   background-position-y: center;
+  padding-left: 80px;
+  display: flex;
+  justify-content: space-between;
+  margin: 0 auto;
 }
 .header .registration_btn {
   display: flex;

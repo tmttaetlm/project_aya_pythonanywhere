@@ -1,8 +1,31 @@
+from django.db.models import Q
 from django.conf import settings
 from telebot import types
 from datetime import datetime
 from main.models import User, Vacancy, Info, Specialisation
 from .keyboards import keyboard
+
+def not_confirmed_users(bot, num, data=None, first_call=False):
+    admin = User.objects.filter(role='Админ')
+    if len(admin) == 0:
+        admin_id = 248598993
+        admin = User.objects.filter(chat_id=admin_id)
+    else: admin_id = admin[0].chat_id
+    users = User.objects.exclude(role='Админ').filter(Q(mode='registration'), Q(step=4)|Q(step=9)).order_by('-id')
+    phone = '+'+str(users[int(num)-1].phone) if str(users[int(num)-1].phone) != '-' else '-'
+    msg = f'Неподтвержденный пользователь {num}/{len(users)}:\n'
+    msg += '\n\n<b>ID</b> ' + str(users[int(num)-1].chat_id)
+    msg += '\n<b>Имя:</b> ' + users[int(num)-1].name
+    msg += '\n<b>Роль:</b> '+users[int(num)-1].role
+    msg += '\n<b>Номер телефона:</b> ' + phone
+    msg += '\n<b>Город:</b> ' + users[int(num)-1].city
+    msg += '\n<b>Дата регистрации:</b> '+users[int(num)-1].registration_date.strftime('%d.%m.%Y %H:%M:%S')
+    if first_call:
+        res = bot.send_message(admin_id, msg, reply_markup = keyboard('postapprove_user', {'user': users[int(num)-1].chat_id, 'next': (int(num)+1) if int(num) < len(users) else '-', 'prev': (int(num)-1) if int(num) > 1 else '-'}), parse_mode='HTML')
+        admin[0].msg_id = res.id
+        admin[0].save()
+    else:
+        bot.edit_message_text(chat_id=admin_id, message_id=admin[0].msg_id, text=msg, reply_markup = keyboard('postapprove_user', {'user': users[int(num)-1].chat_id, 'next': (int(num)+1) if int(num) < len(users) else '-', 'prev': (int(num)-1) if int(num) > 1 else '-'}), parse_mode='HTML')
 
 def create_one_click_vacancy(bot, data):
     v = Vacancy.objects.create(chat_id=data.from_user.id, msg_id=data.id, text=data.text, date=datetime.now())
@@ -34,7 +57,7 @@ def search_master(bot, data):
         bot_user.save()
         return
     if bot_user.mode == 'search' and bot_user.step == 4:
-        bot_user.step = 0
+        bot_user.step = None
         bot_user.mode = None
         bot_user.save()
         sp_city = Info.objects.get(clue='sp_city')
@@ -44,7 +67,8 @@ def search_master(bot, data):
         if len(result) > 0:
             msg = 'Специалисты, соответствующие вашим критериям поиска:\n\n'
             for row in result:
-                msg += 'Имя: '+row.name+'\nНомер телефона: '+row.phone+'\nСсылка на портфолио: '+row.portfolio_url+'\nНаписать в телеграм: @'+row.user+'\n\n'
+                can_chat = ('\nНаписать в телеграм: @'+row.user) if row.user != None else ''
+                msg += 'Имя: '+row.name+'\nНомер телефона: '+row.phone+'\nСсылка на портфолио: '+row.portfolio_url+can_chat+'\n\n'
         else:
             msg = 'Специалисты, соответствующие вашим критериям не найдены\n\n'
         bot.edit_message_text(chat_id=data.from_user.id, message_id=bot_user.msg_id, text=msg)
@@ -99,8 +123,13 @@ def registration_customer(bot, data):
         bot_user.msg_id = res.id
         bot_user.save()
         phone = '+'+str(bot_user.phone) if str(bot_user.phone) != '-' else '-'
-        msg = 'Пользователь @'+bot_user.user+' завершил регистрацию!\n\nИмя: '+bot_user.name+'\nID: '+str(bot_user.chat_id)+'\nType: '+bot_user.role+'\nТелефон: '+phone
-        res = bot.send_message(admin_id, msg, reply_markup = keyboard('approve_user', {'user': bot_user.chat_id}))
+        msg = 'Пользователь'+((' @'+bot_user.user) if bot_user.user != None else '')+' завершил регистрацию!'
+        msg += '\n\n<b>ID</b> ' + str(bot_user.chat_id)
+        msg += '\n<b>Имя:</b> ' + bot_user.name
+        msg += '\n<b>Роль:</b> '+bot_user.role
+        msg += '\n<b>Номер телефона:</b> ' + phone
+        msg += '\n<b>Город:</b> ' + bot_user.city
+        res = bot.send_message(admin_id, msg, reply_markup = keyboard('approve_user', {'user': bot_user.chat_id}), parse_mode='HTML')
         admin[0].msg_id = res.id
         admin[0].save()
         return
@@ -210,8 +239,26 @@ def registration_specialist (bot, data, skip = 0):
             bot_user.msg_id = res.id
             bot_user.save()
         phone = '+'+str(bot_user.phone) if str(bot_user.phone) != '-' else '-'
-        msg = 'Пользователь @'+bot_user.user+' завершил регистрацию!\n\nИмя: '+bot_user.name+'\nID: '+str(bot_user.chat_id)+'\nType: '+bot_user.role+'\nТелефон: '+phone
-        res = bot.send_message(admin_id, msg, reply_markup = keyboard('approve_user', {'user': bot_user.chat_id}))
+        msg = 'Пользователь'+((' @'+bot_user.user) if bot_user.user != None else '')+' завершил регистрацию!'
+        msg += '\n\n<b>ID:</b> ' + str(bot_user.chat_id)
+        msg += '\n<b>Имя:</b> ' + bot_user.name
+        msg += '\n<b>Номер телефона:</b> ' + phone
+        msg += '\n<b>Город:</b> ' + bot_user.city
+        spec = Specialisation.objects.get(clue=bot_user.speciality)
+        msg += '\n<b>Специализация:</b> ' + spec.name
+        if bot_user.experience == 'less-one':
+            experience = 'Менее года'
+        elif bot_user.experience == 'one-three':
+            experience = '1-3 года'
+        elif bot_user.experience == 'more-three':
+            experience = 'Более 3 лет'
+        msg += '\n<b>Опыт работы:</b> ' + experience
+        msg += '\n<b>Ссылка на портфолио:</b> ' + str(bot_user.portfolio_url)
+        msg += '\n<b>О себе:</b> ' + bot_user.description
+        if bot_user.photo_url == '-':
+            res = bot.send_message(admin_id, msg, reply_markup = keyboard('approve_user', {'user': bot_user.chat_id}), parse_mode="HTML")
+        else:
+            res = bot.send_photo(admin_id, bot_user.photo_url, reply_markup = keyboard('approve_user', {'user': bot_user.chat_id}), caption = msg, parse_mode="HTML")
         admin[0].msg_id = res.id
         admin[0].save()
         return

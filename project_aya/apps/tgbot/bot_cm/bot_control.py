@@ -2,7 +2,7 @@ from telebot import types
 from datetime import datetime
 from main.models import User, Message, Vacancy, Specialisation
 from .keyboards import keyboard
-from .functions import search_master
+from .functions import search_master, not_confirmed_users
 
 def control(bot, message):
     admin = User.objects.filter(role='Админ')
@@ -18,15 +18,21 @@ def control(bot, message):
         users = User.objects.exclude(role='Админ').exclude(mode='registration').order_by('-registration_date')[:10]
         msg = 'Последние 10 зарегистрировавщихся пользователей:\n\n'
         for user in users:
-            msg += 'Имя: '+user.name+'\nНомер телефона: '+user.phone+'\nГород: '+user.city+'\nДата регистрации: '+user.registration_date.strftime('%d.%m.%Y %H:%M:%S')+'\nНаписать в телеграм: @'+user.user+'\n\n'
+            can_chat = ('\nНаписать в телеграм: @'+user.user) if user.user != None else ''
+            msg += 'Имя: '+user.name+'\nНомер телефона: '+user.phone+'\nГород: '+user.city+'\nДата регистрации: '+user.registration_date.strftime('%d.%m.%Y %H:%M:%S')+can_chat+'\n'
+            msg += '------------------------------------------------------------\n'
         bot.send_message(admin_id, msg)
     if message.text == '📄 Объявления':
         vacancies = Vacancy.objects.order_by('-date')[:10]
         msg = 'Последние 10 опубликованных объявлений:\n\n'
         for vacancy in vacancies:
             author = User.objects.get(chat_id = vacancy.chat_id)
-            msg += 'Дата публикации: '+vacancy.date.strftime('%d.%m.%Y %H:%M:%S')+'\nТекст: '+vacancy.text+'\nАвтор: '+author.name+'\nНаписать автору: @'+author.user+'\n\n'
+            can_chat = ('\nНаписать в телеграм: @'+author.user) if author.user != None else ''
+            msg += 'Дата публикации: '+vacancy.date.strftime('%d.%m.%Y %H:%M:%S')+'\nТекст: '+vacancy.text+'\nАвтор: '+author.name+can_chat+'\n'
+            msg += '------------------------------------------------------------\n'
         bot.send_message(admin_id, msg)
+    if message.text == '📑 Неподтвержденные пользователи':
+        not_confirmed_users(bot, 1, first_call=True)
     if message.text == '💬 Опубликовать сообщение':
         res = bot.send_message(admin_id, 'Как вы хотите отправить сообщение боту?', reply_markup = keyboard('send_to_bot'))
         admin[0].msg_id = res.id
@@ -129,17 +135,24 @@ def control(bot, message):
         bot_user.msg_id = res.id
         bot_user.save()
     # Редактирование профиля исполнителя
-    if message.text == '💪 Изменить специализацию':
+    if message.text == '🧰 Изменить специализацию':
         kb = types.ReplyKeyboardMarkup(resize_keyboard = True)
         kb.add(types.KeyboardButton('❌ Отмена'))
-        bot.send_message(message.from_user.id, '*Текущая специализация:* ' + bot_user.speciality, reply_markup = kb, parse_mode='Markdown')
-        bot_user.mode = 'editSpecialisation'
+        spec = Specialisation.objects.get(clue=bot_user.speciality)
+        bot.send_message(message.from_user.id, '*Текущая специализация:* ' + spec.name, reply_markup = kb, parse_mode='Markdown')
+        bot_user.mode = 'edit_specialisation'
         bot_user.save()
         bot.send_message(message.from_user.id, 'Выберите специализацию.', reply_markup = keyboard('speciality'))
-    if message.text == '⏰ Изменить опыт работы':
+    if message.text == '🗃 Изменить опыт работы':
         kb = types.ReplyKeyboardMarkup(resize_keyboard = True)
         kb.add(types.KeyboardButton('❌ Отмена'))
-        bot.send_message(message.from_user.id, '*Текущий опыт работы:* ' + bot_user.experience, reply_markup = kb, parse_mode='Markdown')
+        if bot_user.experience == 'less-one':
+            experience = 'Менее года'
+        elif bot_user.experience == 'one-three':
+            experience = '1-3 года'
+        elif bot_user.experience == 'more-three':
+            experience = 'Более 3 лет'
+        bot.send_message(message.from_user.id, '*Текущий опыт работы:* ' + experience, reply_markup = kb, parse_mode='Markdown')
         bot_user.mode = 'edit_experience'
         bot_user.save()
         bot.send_message(message.from_user.id, 'Укажите опыт работы', reply_markup = keyboard('experience'))
