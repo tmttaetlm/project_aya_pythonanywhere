@@ -1,12 +1,12 @@
 import sys, os
 import django
-sys.path.append('/home/Yerdos/project_aya') 
+sys.path.append('/home/Yerdos/project_aya')
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "project_aya.settings")
 django.setup()
 from django.conf import settings
 
 import telebot
-from datetime import datetime
+from datetime import datetime, timedelta
 from main.models import User, Message
 
 bot = telebot.TeleBot(settings.TELEGRAM_TOKEN)
@@ -23,8 +23,8 @@ try:
     for usr in users: bot.send_message(usr.chat_id, text, parse_mode = 'HTML')
 
     msg.delete()
-
-    bot.delete_message(admin[0].chat_id, admin[0].msg_id)
+    if admin[0].msg_id is not None and admin[0].msg_id > now - timedelta(days=3):
+        bot.delete_message(admin[0].chat_id, admin[0].msg_id)
     bot.send_message(admin[0].chat_id, f'Сообщение, запланированное на {now[0:2]}.{now[2:4]} {now[5:7]}:{now[7:9]} отправлено всем пользователям бота')
 except Message.DoesNotExist:
     print('Для отправки ничего не найдено')

@@ -1,9 +1,39 @@
 from django.db.models import Q
 from django.conf import settings
 from telebot import types
-from datetime import datetime
+from datetime import timedelta
+from django.utils import timezone
 from main.models import User, Vacancy, Info, Specialisation
 from .keyboards import keyboard
+
+def not_confirmed_ads(bot, num, data=None, first_call=False):
+    admin = User.objects.filter(role='Админ')
+    if len(admin) == 0:
+        admin_id = 248598993
+        admin = User.objects.filter(chat_id=admin_id)
+    else:
+        admin_id = admin[0].chat_id
+    _vacancy = Vacancy.objects.filter(confirmed=None).order_by('-id')
+    author = User.objects.get(chat_id=_vacancy[int(num)-1].chat_id)
+    if len(_vacancy) > 0:
+        msg = f'Неподтвержденное объявление {num}/{len(_vacancy)}:'
+        msg += '\n\n<b>ID вакансии:</b> '+str(_vacancy[int(num)-1].id)
+        msg += '\n<b>Дата создания:</b> '+_vacancy[int(num)-1].date.strftime('%d.%m.%Y %H:%M:%S')
+        msg += '\n<b>Город, куда опубликовать:</b> '+_vacancy[int(num)-1].city
+        msg += '\n<b>Текст:</b>\n'+_vacancy[int(num)-1].text
+        msg += '\n<b>Автор:</b> ' + author.name
+        msg += '\n<b>ID автора:</b> ' + str(author.chat_id)
+        if str(author.phone) != '-': msg += '\n<b>Номер телефона:</b> ' + '+'+str(author.phone)
+        if author.user is not None: msg += '\n<b>Telegram:</b> @' + author.user
+        if first_call:
+            res = bot.send_message(admin_id, msg, reply_markup = keyboard('postapprove_vacancy', {'vacancy': _vacancy[int(num)-1].id, 'next': (int(num)+1) if int(num) < len(_vacancy) else '-', 'prev': (int(num)-1) if int(num) > 1 else '-'}), parse_mode='HTML')
+            admin[0].msg_id = res.id
+            admin[0].msg_time = timezone.now()
+            admin[0].save()
+        else:
+            bot.edit_message_text(chat_id=admin_id, message_id=admin[0].msg_id, text=msg, reply_markup = keyboard('postapprove_vacancy', {'vacancy': _vacancy[int(num)-1].id, 'next': (int(num)+1) if int(num) < len(_vacancy) else '-', 'prev': (int(num)-1) if int(num) > 1 else '-'}), parse_mode='HTML')
+    else:
+        bot.send_message(admin_id, 'Неподтвержденных объявлений не найдено.')
 
 def not_confirmed_users(bot, num, data=None, first_call=False):
     admin = User.objects.filter(role='Админ')
@@ -12,29 +42,46 @@ def not_confirmed_users(bot, num, data=None, first_call=False):
         admin = User.objects.filter(chat_id=admin_id)
     else: admin_id = admin[0].chat_id
     users = User.objects.exclude(role='Админ').filter(Q(mode='registration'), Q(step=4)|Q(step=9)).order_by('-id')
-    phone = '+'+str(users[int(num)-1].phone) if str(users[int(num)-1].phone) != '-' else '-'
-    msg = f'Неподтвержденный пользователь {num}/{len(users)}:\n'
-    msg += '\n\n<b>ID</b> ' + str(users[int(num)-1].chat_id)
-    msg += '\n<b>Имя:</b> ' + users[int(num)-1].name
-    msg += '\n<b>Роль:</b> '+users[int(num)-1].role
-    msg += '\n<b>Номер телефона:</b> ' + phone
-    msg += '\n<b>Город:</b> ' + users[int(num)-1].city
-    msg += '\n<b>Дата регистрации:</b> '+users[int(num)-1].registration_date.strftime('%d.%m.%Y %H:%M:%S')
-    if first_call:
-        res = bot.send_message(admin_id, msg, reply_markup = keyboard('postapprove_user', {'user': users[int(num)-1].chat_id, 'next': (int(num)+1) if int(num) < len(users) else '-', 'prev': (int(num)-1) if int(num) > 1 else '-'}), parse_mode='HTML')
-        admin[0].msg_id = res.id
-        admin[0].save()
+    if len(users) > 0:
+        phone = '+'+str(users[int(num)-1].phone) if str(users[int(num)-1].phone) != '-' else '-'
+        msg = f'Неподтвержденный пользователь {num}/{len(users)}:'
+        msg += '\n\n<b>ID:</b> ' + str(users[int(num)-1].chat_id)
+        msg += '\n<b>Имя:</b> ' + users[int(num)-1].name
+        msg += '\n<b>Роль:</b> '+users[int(num)-1].role
+        msg += '\n<b>Номер телефона:</b> ' + phone
+        msg += '\n<b>Город:</b> ' + users[int(num)-1].city
+        if users[int(num)-1].role == 'Исполнитель':
+            spec = Specialisation.objects.get(clue=users[int(num)-1].speciality)
+            msg += '\n<b>Специализация:</b> ' + spec.name
+            if users[int(num)-1].experience == 'less-one':
+                experience = 'Менее года'
+            elif users[int(num)-1].experience == 'one-three':
+                experience = '1-3 года'
+            elif users[int(num)-1].experience == 'more-three':
+                experience = 'Более 3 лет'
+            msg += '\n<b>Опыт работы:</b> ' + experience
+            msg += '\n<b>Ссылка на портфолио:</b> ' + str(users[int(num)-1].portfolio_url)
+            msg += '\n<b>О себе:</b> ' + users[int(num)-1].description
+        msg += '\n<b>Дата регистрации:</b> '+users[int(num)-1].registration_date.strftime('%d.%m.%Y %H:%M:%S')
+        if first_call:
+            res = bot.send_message(admin_id, msg, reply_markup = keyboard('postapprove_user', {'user': users[int(num)-1].chat_id, 'next': (int(num)+1) if int(num) < len(users) else '-', 'prev': (int(num)-1) if int(num) > 1 else '-'}), parse_mode='HTML')
+            admin[0].msg_id = res.id
+            admin[0].msg_time = timezone.now()
+            admin[0].save()
+        else:
+            bot.edit_message_text(chat_id=admin_id, message_id=admin[0].msg_id, text=msg, reply_markup = keyboard('postapprove_user', {'user': users[int(num)-1].chat_id, 'next': (int(num)+1) if int(num) < len(users) else '-', 'prev': (int(num)-1) if int(num) > 1 else '-'}), parse_mode='HTML')
     else:
-        bot.edit_message_text(chat_id=admin_id, message_id=admin[0].msg_id, text=msg, reply_markup = keyboard('postapprove_user', {'user': users[int(num)-1].chat_id, 'next': (int(num)+1) if int(num) < len(users) else '-', 'prev': (int(num)-1) if int(num) > 1 else '-'}), parse_mode='HTML')
+        bot.send_message(admin_id, 'Неподтвержденных пользователей не найдено.')
 
 def create_one_click_vacancy(bot, data):
-    v = Vacancy.objects.create(chat_id=data.from_user.id, msg_id=data.id, text=data.text, date=datetime.now())
+    v = Vacancy.objects.create(chat_id=data.from_user.id, msg_id=data.id, text=data.text, date=timezone.now())
     text = 'Ваше объявление:\n\n'
     text += data.text+'\n\n'
     text += 'Выберите в группу какого города хотите опубликовать:'
     res = bot.send_message(data.from_user.id, text, reply_markup = keyboard('cities'))
     bot_user = User.objects.get(chat_id=data.from_user.id)
     bot_user.msg_id = res.id
+    bot_user.msg_time = timezone.now()
     bot_user.mode = bot_user.mode + '_' + str(v.id)
     bot_user.save()
 
@@ -43,6 +90,7 @@ def search_master(bot, data):
     if bot_user.mode == 'search' and bot_user.step == 1:
         res = bot.send_message(data.from_user.id, 'Укажите специальность:', reply_markup = keyboard('speciality'))
         bot_user.msg_id = res.id
+        bot_user.msg_time = timezone.now()
         bot_user.step = 2
         bot_user.save()
         return
@@ -87,40 +135,46 @@ def registration_customer(bot, data):
 
     if bot_user.mode != 'registration': return
     if bot_user.step == 1:
-        bot.delete_message(chat_id, bot_user.msg_id)
+        check_and_delete_msg(bot, chat_id, bot_user.msg_id, bot_user.msg_time)
         res = bot.send_message(chat_id, '📱 Отправьте Ваш номер телефон (необязательно)', reply_markup = keyboard('phone_request'))
         bot_user.role = 'Заказчик'
         bot_user.msg_id = res.id
+        bot_user.msg_time = timezone.now()
         bot_user.save()
         return
     if bot_user.step == 2:
-        bot.delete_message(chat_id, bot_user.msg_id)
+        check_and_delete_msg(bot, chat_id, bot_user.msg_id, bot_user.msg_time)
         res = bot.send_message(chat_id, '☺️ Как к Вам обращаться?', reply_markup = keyboard('remove_keyboard'))
         if data.text == '➡️ Пропустить':
             bot_user.phone = '-'
             bot_user.msg_id = res.id
+            bot_user.msg_time = timezone.now()
             bot_user.save()
         else:
             if data.contact is None:
                 bot_user.msg_id = res.id
+                bot_user.msg_time = timezone.now()
                 bot_user.save()
             else:
                 bot_user.phone = data.contact.phone_number
                 bot_user.msg_id = res.id
+                bot_user.msg_time = timezone.now()
                 bot_user.save()
         return
     if bot_user.step == 3:
-        bot.delete_message(chat_id, bot_user.msg_id)
+        check_and_delete_msg(bot, chat_id, bot_user.msg_id, bot_user.msg_time)
         res = bot.send_message(chat_id, '🏙 Ваш город?', reply_markup = keyboard('cities'))
         bot_user.name = data.text
         bot_user.msg_id = res.id
+        bot_user.msg_time = timezone.now()
         bot_user.save()
         return
     if bot_user.step == 4:
-        bot.delete_message(chat_id, bot_user.msg_id)
+        check_and_delete_msg(bot, chat_id, bot_user.msg_id, bot_user.msg_time)
         res = bot.send_message(chat_id, 'Поздравляю с успешной регистрацией! После подтверждения администратором Вы сможете использовать функционал бота!')
         bot_user.city = data.data[data.data.index('_')+1:len(data.data)]
         bot_user.msg_id = res.id
+        bot_user.msg_time = timezone.now()
         bot_user.save()
         phone = '+'+str(bot_user.phone) if str(bot_user.phone) != '-' else '-'
         msg = 'Пользователь'+((' @'+bot_user.user) if bot_user.user != None else '')+' завершил регистрацию!'
@@ -131,10 +185,11 @@ def registration_customer(bot, data):
         msg += '\n<b>Город:</b> ' + bot_user.city
         res = bot.send_message(admin_id, msg, reply_markup = keyboard('approve_user', {'user': bot_user.chat_id}), parse_mode='HTML')
         admin[0].msg_id = res.id
+        admin[0].msg_time = timezone.now()
         admin[0].save()
         return
 
-def registration_specialist (bot, data, skip = 0):
+def registration_specialist(bot, data, skip = 0):
     admin = User.objects.filter(role="Админ")
     bot_user = User.objects.get(chat_id=data.from_user.id)
     if len(admin) == 0: admin_id = 248598993
@@ -143,66 +198,75 @@ def registration_specialist (bot, data, skip = 0):
 
     if bot_user.mode != 'registration': return
     if bot_user.step == 1:
-        bot.delete_message(chat_id, bot_user.msg_id)
+        check_and_delete_msg(bot, chat_id, bot_user.msg_id, bot_user.msg_time)
         res = bot.send_message(chat_id, '📱 Отправьте Ваш номер телефон (необязательно)', reply_markup = keyboard('phone_request'))
         bot_user.role = 'Исполнитель'
         bot_user.msg_id = res.id
+        bot_user.msg_time = timezone.now()
         bot_user.save()
         return
     if bot_user.step == 2:
-        bot.delete_message(chat_id, bot_user.msg_id)
+        check_and_delete_msg(bot, chat_id, bot_user.msg_id, bot_user.msg_time)
         res = bot.send_message(chat_id, 'Как к Вам обращаться?', reply_markup = keyboard('remove_keyboard'))
         if data.text == '➡️ Пропустить':
             bot_user.phone = '-'
             bot_user.msg_id = res.id
+            bot_user.msg_time = timezone.now()
             bot_user.save()
         else:
             if data.contact is None:
                 bot_user.msg_id = res.id
+                bot_user.msg_time = timezone.now()
                 bot_user.save()
             else:
                 bot_user.phone = data.contact.phone_number
                 bot_user.msg_id = res.id
+                bot_user.msg_time = timezone.now()
                 bot_user.save()
         return
     if bot_user.step == 3:
-        bot.delete_message(chat_id, bot_user.msg_id)
+        check_and_delete_msg(bot, chat_id, bot_user.msg_id, bot_user.msg_time)
         res = bot.send_message(chat_id, 'Ваш город?', reply_markup = keyboard('cities'))
         bot_user.name = data.text
         bot_user.msg_id = res.id
+        bot_user.msg_time = timezone.now()
         bot_user.save()
         return
     if bot_user.step == 4:
-        bot.delete_message(chat_id, bot_user.msg_id)
+        check_and_delete_msg(bot, chat_id, bot_user.msg_id, bot_user.msg_time)
         res = bot.send_message(chat_id, 'Укажите опыт работы', reply_markup = keyboard('experience'))
         bot_user.city = data.data[data.data.index('_')+1:len(data.data)]
         bot_user.msg_id = res.id
+        bot_user.msg_time = timezone.now()
         bot_user.save()
         return
     if bot_user.step == 5:
-        bot.delete_message(chat_id, bot_user.msg_id)
+        check_and_delete_msg(bot, chat_id, bot_user.msg_id, bot_user.msg_time)
         res = bot.send_message(chat_id, 'Укажите специальность', reply_markup = keyboard('speciality'))
         bot_user.experience = data.data[data.data.index('_')+1:len(data.data)]
         bot_user.msg_id = res.id
+        bot_user.msg_time = timezone.now()
         bot_user.save()
         return
     if bot_user.step == 6:
         t_keyboard = types.InlineKeyboardMarkup()
         t_keyboard.add(types.InlineKeyboardButton('➡️ Пропустить', callback_data = 'skip_photo'))
-        bot.delete_message(chat_id, bot_user.msg_id)
+        check_and_delete_msg(bot, chat_id, bot_user.msg_id, bot_user.msg_time)
         res = bot.send_message(chat_id, 'Загрузите вашу фотография', reply_markup = t_keyboard)
         bot_user.speciality = data.data[data.data.index('_')+1:len(data.data)]
         bot_user.msg_id = res.id
+        bot_user.msg_time = timezone.now()
         bot_user.save()
         return
     if bot_user.step == 7:
         t_keyboard = types.InlineKeyboardMarkup()
         t_keyboard.add(types.InlineKeyboardButton('➡️ Пропустить', callback_data = 'skip_portfolio'))
-        bot.delete_message(chat_id, bot_user.msg_id)
+        check_and_delete_msg(bot, chat_id, bot_user.msg_id, bot_user.msg_time)
         res = bot.send_message(chat_id, 'Отправьте ссылку на портфолио', reply_markup = t_keyboard)
         if skip:
             bot_user.photo_url = '-'
             bot_user.msg_id = res.id
+            bot_user.msg_time = timezone.now()
             bot_user.save()
         else:
             file = bot.get_file(data.photo[-1].file_id)
@@ -211,32 +275,37 @@ def registration_specialist (bot, data, skip = 0):
                 new_file.write(downloaded_file)
                 bot_user.photo_url = data.photo[-1].file_id
             bot_user.msg_id = res.id
+            bot_user.msg_time = timezone.now()
             bot_user.save()
         return
     if bot_user.step == 8:
         t_keyboard = types.InlineKeyboardMarkup()
         t_keyboard.add(types.InlineKeyboardButton('➡️ Пропустить', callback_data = 'skip_description'))
-        bot.delete_message(chat_id, bot_user.msg_id)
+        check_and_delete_msg(bot, chat_id, bot_user.msg_id, bot_user.msg_time)
         res = bot.send_message(chat_id, 'Раскажите немного о себе', reply_markup = t_keyboard)
         if skip:
             bot_user.portfolio_url = '-'
             bot_user.msg_id = res.id
+            bot_user.msg_time = timezone.now()
             bot_user.save()
         else:
             bot_user.portfolio_url = data.text
             bot_user.msg_id = res.id
+            bot_user.msg_time = timezone.now()
             bot_user.save()
         return
     if bot_user.step == 9:
-        bot.delete_message(chat_id, bot_user.msg_id)
+        check_and_delete_msg(bot, chat_id, bot_user.msg_id, bot_user.msg_time)
         res = bot.send_message(chat_id, 'Поздравляю с успешной регистрацией! После подтверждения администратором Вы сможете использовать функционал бота!')
         if skip:
             bot_user.description = '-'
             bot_user.msg_id = res.id
+            bot_user.msg_time = timezone.now()
             bot_user.save()
         else:
             bot_user.description = data.text
             bot_user.msg_id = res.id
+            bot_user.msg_time = timezone.now()
             bot_user.save()
         phone = '+'+str(bot_user.phone) if str(bot_user.phone) != '-' else '-'
         msg = 'Пользователь'+((' @'+bot_user.user) if bot_user.user != None else '')+' завершил регистрацию!'
@@ -260,5 +329,77 @@ def registration_specialist (bot, data, skip = 0):
         else:
             res = bot.send_photo(admin_id, bot_user.photo_url, reply_markup = keyboard('approve_user', {'user': bot_user.chat_id}), caption = msg, parse_mode="HTML")
         admin[0].msg_id = res.id
+        admin[0].msg_time = timezone.now()
         admin[0].save()
         return
+
+def check_and_delete_msg(bot, chat_id, msg_id, msg_time):
+    if msg_id is not None:
+        if msg_time > timezone.now() - timedelta(days=3):
+            try:
+                bot.delete_message(chat_id, msg_id)
+                msg_id = None
+                msg_time = None
+            except:
+                bot.send_message(248598993, 'Попытка удаления сообщения '+str(msg_id)+' в чате '+str(chat_id)+' неудачна')
+
+def confirm_ads(bot, admin_id, admin, mode, callback_message):
+    vacancy_id = callback_message.data[callback_message.data.rfind('_')+1:len(callback_message.data)]
+    _vacancy = Vacancy.objects.get(id=vacancy_id)
+    if mode == 'to_bot':
+        users = User.objects.filter(city=_vacancy.city, role='Исполнитель')
+        author = User.objects.get(chat_id=_vacancy.chat_id)
+        for usr in users:
+            msg_text = '⭕️ Новый Заказ\n\n'
+            msg_text += '▫️ Описание:\n'+_vacancy.text+'\n\n'
+            msg_text += '👤 Имя заказчика: '+author.name+'\n'
+            if author.user is not None:
+                msg_text += '📨 Написать автору: '+author.user+'\n'
+            else:
+                phone = '+'+str(author.phone) if str(author.phone) != '-' else '-'
+                msg_text += '📱 Номер телефона: '+phone+'\n'
+            bot.send_message(usr.chat_id, msg_text, reply_markup = keyboard('vacancy_to_bot', {'username': usr.user}))
+        author = User.objects.get(chat_id=_vacancy.chat_id)
+        check_and_delete_msg(bot, _vacancy.chat_id, author.msg_id, author.msg_time)
+        bot.send_message(_vacancy.chat_id, '✅ Администрация подтвердила Ваше объявление с ID '+vacancy_id)
+        check_and_delete_msg(bot, admin_id, admin[0].msg_id, admin[0].msg_time)
+        bot.send_message(admin_id, 'Вы подтвердили и отправили пользователям бота объявление с ID '+vacancy_id)
+    if mode == 'to_channel':
+        author = User.objects.get(chat_id=_vacancy.chat_id)
+        msg_text = '⭕️ Новый Заказ\n\n'
+        msg_text += '▫️ Описание:\n'+_vacancy.text+'\n\n'
+        msg_text += '👤 Имя заказчика: '+author.name+'\n'
+        if author.user is not None:
+            msg_text += '📨 Написать автору: '+author.user+'\n'
+        else:
+            phone = '+'+str(author.phone) if str(author.phone) != '-' else '-'
+            msg_text += '📱 Номер телефона: '+phone+'\n'
+        groups = {
+            'Неважно': '@kazakhstan_jumys',
+            'Almaty': '@almaty_jumys',
+            'Nur-Sultan': '@astana_jumys',
+            'Shymkent': '@shymkent_job',
+            'Kyzylorda': '@qyzylorda_job',
+            'Karagandy': '@karagandy_job',
+            'Taraz': '@taraz_job',
+            'Aktau': '@aktau_jumys',
+            'Atyrau': '@atyrau_job',
+            'Aktobe': '@jobaktobe',
+            'Oral': '@oral_job',
+            'Petropavl': '@petropavl_job',
+            'Pavlodar': '@job_pavlodar',
+            'Kostanay': '@kostanay_job',
+            'Oskemen': '@oskemen_job',
+            'Semey': '@semey_job',
+            'Taldykorgan': '@taldykorgan_jumys',
+            'Zhezkazgan': '@jezkazgan_jumys'
+        }
+        #bot.send_message('@tmttae', msg_text, reply_markup = keyboard('vacancy_to_bot', {'username': author.user}))
+        res = bot.send_message(groups.get(_vacancy.city), msg_text, reply_markup = keyboard('vacancy_to_bot', {'username': author.user}))
+        _vacancy.msg_id = res.id
+        check_and_delete_msg(bot, _vacancy.chat_id, author.msg_id, author.msg_time)
+        bot.send_message(_vacancy.chat_id, '✅ Администрация подтвердила Ваше объявление с ID '+vacancy_id)
+        check_and_delete_msg(bot, admin_id, admin[0].msg_id, admin[0].msg_time)
+        bot.send_message(admin_id, 'Вы подтвердили и отправили в канал объявление с ID '+vacancy_id)
+    _vacancy.confirmed = 1
+    _vacancy.save()

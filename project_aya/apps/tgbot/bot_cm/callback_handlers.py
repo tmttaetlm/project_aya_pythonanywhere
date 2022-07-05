@@ -1,6 +1,8 @@
+from datetime import timedelta
+from django.utils import timezone
 from main.models import User, Vacancy, Message, Info, Specialisation
 from .keyboards import keyboard
-from .functions import registration_customer, registration_specialist, search_master, not_confirmed_users
+from .functions import registration_customer, registration_specialist, search_master, not_confirmed_users, not_confirmed_ads, check_and_delete_msg, confirm_ads
 
 def callback(bot, callback_message):
     admin = User.objects.filter(role='Админ')
@@ -12,9 +14,10 @@ def callback(bot, callback_message):
 
     # User callbacks
     if callback_message.data == 'start_accept':
-        bot.delete_message(callback_message.from_user.id, bot_user.msg_id)
+        check_and_delete_msg(bot, callback_message.from_user.id, bot_user.msg_id, bot_user.msg_time)
         res = bot.send_message(callback_message.from_user.id, 'Выберите кто Вы:', reply_markup = keyboard('who_you_are'))
         bot_user.msg_id = res.id
+        bot_user.msg_time = timezone.now()
         bot_user.step = 0
         bot_user.save()
         return
@@ -41,16 +44,18 @@ def callback(bot, callback_message):
             _vacancy = Vacancy.objects.get(id=bot_user.mode[bot_user.mode.rfind('_')+1:len(bot_user.mode)])
             _vacancy.city = callback_message.data[callback_message.data.find('_')+1:len(callback_message.data)]
             _vacancy.save()
-            bot.delete_message(callback_message.from_user.id, bot_user.msg_id)
+            check_and_delete_msg(bot, callback_message.from_user.id, bot_user.msg_id, bot_user.msg_time)
             res = bot.send_message(callback_message.from_user.id, messages[2].text.replace('br', '\n'))
-            bot_user.msg_id = res.id
+            bot_user.msg_id = None
+            bot_user.msg_time = None
             bot_user.step = None
             bot_user.mode = None
             bot_user.save()
-            admin_msg_text = 'Пользователь @'+bot_user.user+' (Имя: '+bot_user.name+' ID: '+str(bot_user.chat_id)+') создал объявление!'
+            admin_msg_text = 'Пользователь'+((' @'+bot_user.user) if bot_user.user != None else '')+' (Имя: '+bot_user.name+' ID: '+str(bot_user.chat_id)+') создал объявление!'
             admin_msg_text += '\n\nID вакансии: '+str(_vacancy.id)+'\n\nГород, куда опубликовать: '+_vacancy.city+'\nТекст:\n'+_vacancy.text
             res = bot.send_message(admin_id, admin_msg_text, reply_markup = keyboard('approve_vacancy', {'vacancy': _vacancy.id}))
             admin[0].msg_id = res.id
+            admin[0].msg_time = timezone.now()
             admin[0].save()
         else:
             if bot_user.role == 'Заказчик':
@@ -107,41 +112,42 @@ def callback(bot, callback_message):
         registration_specialist(bot, callback_message, 1)
         return
     if callback_message.data.find('confirm_text') >= 0:
-        bot.delete_message(callback_message.from_user.id, bot_user.msg_id)
+        check_and_delete_msg(bot, callback_message.from_user.id, bot_user.msg_id, bot_user.msg_time)
         res = bot.send_message(callback_message.from_user.id, 'Ваше объявление выйдет в ближайшее время!\nКофе☕️, Чай🍃, Воду? :)')
         bot_user.msg_id = res.id
+        bot_user.msg_time = timezone.now()
         bot_user.save()
         _vacancy = Vacancy.objects.order_by('-id').first()
-        admin_msg_text = 'Пользователь '+bot_user.user+' (Имя: '+bot_user.name+' ID: '+str(bot_user.chat_id)+') создал объявление!'
+        admin_msg_text = 'Пользователь'+((' @'+bot_user.user) if bot_user.user != None else '')+' (Имя: '+bot_user.name+' ID: '+str(bot_user.chat_id)+') создал объявление!'
         admin_msg_text += '\n\nID вакансии: '+str(_vacancy.id)+'\nОписание:\n'+_vacancy.text
         bot.send_message(admin_id, admin_msg_text, reply_markup = keyboard('approve_vacancy', {'vacancy': _vacancy.id}))
     if callback_message.data.find('reject_text') >= 0:
         vacancy_id = callback_message.data[callback_message.data.rfind('_')+1:len(callback_message.data)]
         vac = Vacancy.objects.get(id=vacancy_id)
         vac.delete()
-        bot.delete_message(callback_message.from_user.id, bot_user.msg_id)
+        check_and_delete_msg(bot, callback_message.from_user.id, bot_user.msg_id, bot_user.msg_time)
         bot.send_message(callback_message.from_user.id, '🚫 Вы удалили объявление. Вы можете подать его повторно.')
     #######################
     # Admin callbacks
     if callback_message.data.find('confirm_user') >= 0:
         user_id = callback_message.data[callback_message.data.rfind('_')+1:len(callback_message.data)]
         tmp_user = User.objects.get(chat_id=user_id)
+        check_and_delete_msg(bot, user_id, tmp_user.msg_id, tmp_user.msg_time)
+        check_and_delete_msg(bot, admin_id, admin[0].msg_id, admin[0].msg_time)
         tmp_user.mode = None
         tmp_user.step = None
         tmp_user.save()
-        bot.delete_message(user_id, tmp_user.msg_id)
-        bot.delete_message(admin_id, admin[0].msg_id)
         bot.send_message(user_id, '✅ Администрация подтвердила Ваш аккаунт!', reply_markup = keyboard('customer') if tmp_user.role == 'Заказчик' else keyboard('specialist'))
-        bot.send_message(admin_id, 'Аккаунт пользователя '+tmp_user.user+'(Имя: '+tmp_user.name+' ID: '+user_id+') подтверждён')
+        bot.send_message(admin_id, 'Аккаунт пользователя'+((' @'+tmp_user.user) if tmp_user.user != None else '')+'(Имя: '+tmp_user.name+' ID: '+user_id+') подтверждён')
         return
     if callback_message.data.find('reject_user') >= 0:
         user_id = callback_message.data[callback_message.data.rfind('_')+1:len(callback_message.data)]
         tmp_user = User.objects.get(chat_id=user_id)
+        check_and_delete_msg(bot, user_id, tmp_user.msg_id, tmp_user.msg_time)
+        check_and_delete_msg(bot, admin_id, admin[0].msg_id, admin[0].msg_time)
         tmp_user.delete()
-        bot.delete_message(user_id, tmp_user.msg_id)
-        bot.delete_message(admin_id, admin[0].msg_id)
         bot.send_message(user_id, '🚫 Администрация отклонила Ваш аккаунт! Попробуйте зарегистрироваться заново.')
-        bot.send_message(admin_id, 'Аккаунт пользователя '+tmp_user.user+'(Имя: '+tmp_user.name+' ID: '+user_id+') отклонён')
+        bot.send_message(admin_id, 'Аккаунт пользователя'+((' @'+tmp_user.user) if tmp_user.user != None else '')+'(Имя: '+tmp_user.name+' ID: '+user_id+') отклонён')
         return
     if callback_message.data.find('to_bot') >= 0:
         confirm_ads(bot, admin_id, admin, 'to_bot', callback_message)
@@ -157,78 +163,35 @@ def callback(bot, callback_message):
         vacancy_id = callback_message.data[callback_message.data.rfind('_')+1:len(callback_message.data)]
         _vacancy = Vacancy.objects.get(id=vacancy_id)
         bot_user = User.objects.get(chat_id=_vacancy.chat_id)
-        bot.delete_message(_vacancy.chat_id, bot_user.msg_id)
+        check_and_delete_msg(bot, _vacancy.chat_id, bot_user.msg_id, bot_user.msg_time)
         bot.send_message(_vacancy.chat_id, '🚫 Администрация удалила Ваше объявление с ID '+str(vacancy_id))
         bot.send_message(admin_id, 'Вы отклонили объявление с ID '+vacancy_id)
         vac = Vacancy.objects.get(id=vacancy_id)
         vac.delete()
         return
     if callback_message.data == 'send_now':
-        bot.delete_message(admin_id, admin[0].msg_id)
+        check_and_delete_msg(bot, admin_id, admin[0].msg_id, admin[0].msg_time)
         res = bot.send_message(admin_id, 'Отправьте текст сообщения для отправки')
         admin[0].msg_id = res.id
+        admin[0].msg_time = timezone.now()
         admin[0].mode = 'send_now'
         admin[0].save()
         return
     if callback_message.data == 'send_on_time':
-        bot.delete_message(admin_id, admin[0].msg_id)
+        check_and_delete_msg(bot, admin_id, admin[0].msg_id, admin[0].msg_time)
         res = bot.send_message(admin_id, 'Отправьте текст сообщения для отправки')
         admin[0].msg_id = res.id
+        admin[0].msg_time = timezone.now()
         admin[0].mode = 'send_on_time'
         admin[0].step = 1
         admin[0].save()
         Message.objects.create(clue='on_time_msg')
         return
-    if callback_message.data.find('next_') >= 0 or callback_message.data.find('prev_') >= 0:
+    if callback_message.data.startswith('next_') or callback_message.data.startswith('prev_'):
         num = callback_message.data[callback_message.data.index('_')+1:len(callback_message.data)]
         if num != '-': not_confirmed_users(bot, num)
+    if callback_message.data.startswith('vnext_') or callback_message.data.startswith('vprev_'):
+        num = callback_message.data[callback_message.data.index('_')+1:len(callback_message.data)]
+        if num != '-': not_confirmed_ads(bot, num)
     ################
     #bot.answer_callback_message_query(callback_message.id)
-
-def confirm_ads(bot, admin_id, admin, mode, callback_message):
-    vacancy_id = callback_message.data[callback_message.data.rfind('_')+1:len(callback_message.data)]
-    _vacancy = Vacancy.objects.get(id=vacancy_id)
-    if mode == 'to_bot':
-        users = User.objects.filter(city=_vacancy.city, role='Исполнитель')
-        for usr in users:
-            name = User.objects.filter(chat_id=_vacancy.chat_id).values('name')
-            msg_text = '⭕️ Новый Заказ\n\n'
-            msg_text += '▫️ Описание:\n'+_vacancy.role+'\n\n'
-            msg_text += '👤 Имя заказчика: '+name[0]+'\n'
-            bot.send_message(usr.chat_id, msg_text, reply_markup = keyboard('vacancy_to_bot', {'username': usr.user}))
-        bot_user = User.objects.get(chat_id=_vacancy.chat_id)
-        bot.delete_message(_vacancy.chat_id, bot_user.msg_id)
-        bot.send_message(_vacancy.chat_id, '✅ Администрация подтвердила Ваше объявление с ID '+vacancy_id)
-        bot.delete_message(admin_id, admin[0].msg_id)
-        bot.send_message(admin_id, 'Вы подтвердили и отправили пользователям бота объявление с ID '+vacancy_id)
-    if mode == 'to_channel':
-        bot_user = User.objects.get(chat_id=_vacancy.chat_id)
-        msg_text = '⭕️ Новый Заказ\n\n'
-        msg_text += '▫️ Описание:\n'+_vacancy.text+'\n\n'
-        msg_text += '👤 Имя заказчика: '+bot_user.name+'\n'
-        groups = {
-            'Неважно': '@kazakhstan_jumys',
-            'Almaty': '@almaty_jumys',
-            'Nur-Sultan': '@astana_jumys',
-            'Shymkent': '@shymkent_job',
-            'Kyzylorda': '@qyzylorda_job',
-            'Karagandy': '@karagandy_job',
-            'Taraz': '@taraz_job',
-            'Aktau': '@aktau_jumys',
-            'Atyrau': '@atyrau_job',
-            'Aktobe': '@jobaktobe',
-            'Oral': '@oral_job',
-            'Petropavl': '@petropavl_job',
-            'Pavlodar': '@job_pavlodar',
-            'Kostanay': '@kostanay_job',
-            'Oskemen': '@oskemen_job',
-            'Semey': '@semey_job',
-            'Taldykorgan': '@taldykorgan_jumys',
-            'Zhezkazgan': '@jezkazgan_jumys'
-        }
-        #bot.send_message('@tmttae', msg_text, reply_markup = keyboard('vacancy_to_bot', {'username': bot_user.user}))
-        bot.send_message(groups.get(_vacancy.city), msg_text, reply_markup = keyboard('vacancy_to_bot', {'username': bot_user.user}))
-        bot.delete_message(_vacancy.chat_id, bot_user.msg_id)
-        bot.send_message(_vacancy.chat_id, '✅ Администрация подтвердила Ваше объявление с ID '+vacancy_id)
-        bot.delete_message(admin_id, admin[0].msg_id)
-        bot.send_message(admin_id, 'Вы подтвердили и отправили в канал объявление с ID '+vacancy_id)

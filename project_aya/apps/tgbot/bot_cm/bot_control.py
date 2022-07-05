@@ -1,8 +1,9 @@
 from telebot import types
-from datetime import datetime
+from datetime import timedelta
+from django.utils import timezone
 from main.models import User, Message, Vacancy, Specialisation
 from .keyboards import keyboard
-from .functions import search_master, not_confirmed_users
+from .functions import search_master, not_confirmed_users, not_confirmed_ads
 
 def control(bot, message):
     admin = User.objects.filter(role='Админ')
@@ -31,16 +32,20 @@ def control(bot, message):
             msg += 'Дата публикации: '+vacancy.date.strftime('%d.%m.%Y %H:%M:%S')+'\nТекст: '+vacancy.text+'\nАвтор: '+author.name+can_chat+'\n'
             msg += '------------------------------------------------------------\n'
         bot.send_message(admin_id, msg)
-    if message.text == '📑 Неподтвержденные пользователи':
+    if message.text == '👔 Неподтвержденные пользователи':
         not_confirmed_users(bot, 1, first_call=True)
+    if message.text == '📑 Неподтвержденные объявления':
+        not_confirmed_ads(bot, 1, first_call=True)
     if message.text == '💬 Опубликовать сообщение':
         res = bot.send_message(admin_id, 'Как вы хотите отправить сообщение боту?', reply_markup = keyboard('send_to_bot'))
         admin[0].msg_id = res.id
+        admin[0].msg_time = timezone.now()
         admin[0].save()
     # Сторона заказчика
     if message.text == '⚡️ Разместить вакансию в 1 клик':
-        bot_user.mode = 'one_click_vacancy'
-        bot_user.save()
+        if bot_user.mode != 'one_click_vacancy':
+            bot_user.mode = 'one_click_vacancy'
+            bot_user.save()
         bot.send_message(message.from_user.id, messages[1].text.replace('br', '\n'))
         return
     if message.text == '🔎 Поиск специалиста':
@@ -133,6 +138,7 @@ def control(bot, message):
         bot_user.save()
         res = bot.send_message(message.from_user.id, 'Выберите кто Вы:', reply_markup = keyboard('who_you_are'))
         bot_user.msg_id = res.id
+        bot_user.msg_time = timezone.now()
         bot_user.save()
     # Редактирование профиля исполнителя
     if message.text == '🧰 Изменить специализацию':
@@ -194,4 +200,5 @@ def control(bot, message):
         bot_user.save()
         res = bot.send_message(message.from_user.id, 'Выберите кто Вы:', reply_markup = keyboard('who_you_are'))
         bot_user.msg_id = res.id
+        bot_user.msg_time = timezone.now()
         bot_user.save()

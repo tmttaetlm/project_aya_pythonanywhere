@@ -1,8 +1,10 @@
 import re
+from datetime import timedelta
+from django.utils import timezone
 from django import forms
 from main.models import User, Message
 from .keyboards import keyboard
-from .functions import registration_customer, registration_specialist, create_one_click_vacancy
+from .functions import registration_customer, registration_specialist, create_one_click_vacancy, check_and_delete_msg
 
 def handler(bot, message):
     admin = User.objects.filter(role='Админ')
@@ -11,6 +13,8 @@ def handler(bot, message):
     if len(admin) == 0: admin_id = 248598993
     else: admin_id = admin[0].chat_id
 
+    if message.text == 'Рефреш меню':
+        bot.send_message(message.chat.id, 'Рады снова Вас видеть, '+bot_user.name, reply_markup = keyboard('admin'))
     if message.text == '➡️ Пропустить':
         if bot_user.mode == 'edit_phone':
             bot_user.phone = '-'
@@ -87,7 +91,8 @@ def handler(bot, message):
         registration_specialist(bot, message)
         return
     if bot_user.mode == 'one_click_vacancy':
-        create_one_click_vacancy(bot, message)
+        if message.text != '⚡️ Разместить вакансию в 1 клик':
+            create_one_click_vacancy(bot, message)
         return
     if bot_user.mode == 'edit_phone':
         result = re.match('^(\+7|7|8)(\d{3})(\d{3})(\d{4})(\d*)', message.text)
@@ -117,14 +122,15 @@ def handler(bot, message):
         users = User.objects.exclude(role='Админ')
         msg = message.text + f'\n\n<b>Сообщение создано и отправлено администратором. Если требуется ответ, напишите администратору @{admin[0].user} напрямую</b>'
         for usr in users: bot.send_message(usr.chat_id, msg, parse_mode = 'HTML')
-        bot.delete_message(admin_id, bot_user.msg_id)
+        check_and_delete_msg(bot, admin_id, admin[0].msg_id, admin[0].msg_time)
         bot.send_message(admin_id, 'Сообщение отправлено всем пользователям бота.')
         bot_user.mode = None
         bot_user.save()
     if bot_user.mode == 'send_on_time' and bot_user.step == 1:
-        bot.delete_message(admin_id, bot_user.msg_id)
+        check_and_delete_msg(bot, admin_id, admin[0].msg_id, admin[0].msg_time)
         res = bot.send_message(admin_id, 'Отправьте дату и время отправки в формате "DDMM_HHMM"')
         bot_user.msg_id = res.id
+        bot_user.msg_time = timezone.now()
         bot_user.step = 2
         bot_user.save()
         on_time_msg = Message.objects.filter(clue='on_time_msg').order_by('-id').first()
@@ -132,9 +138,10 @@ def handler(bot, message):
         on_time_msg.save()
         return
     if bot_user.mode == 'send_on_time' and bot_user.step == 2:
-        bot.delete_message(admin_id, bot_user.msg_id)
+        check_and_delete_msg(bot, admin_id, admin[0].msg_id, admin[0].msg_time)
         res = bot.send_message(admin_id, 'Сообщение сохранено и будет отправлено в указанное вами время')
         bot_user.msg_id = res.id
+        bot_user.msg_time = timezone.now()
         bot_user.step = None
         bot_user.mode = None
         bot_user.save()

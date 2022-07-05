@@ -6,14 +6,15 @@ import telebot
 import logging
 import json
 
-from datetime import datetime
+from datetime import timedelta
+from django.utils import timezone
 from main.models import User, Message
 
 from .bot_cm.keyboards import keyboard
 from .bot_cm.message_handlers import handler
 from .bot_cm.callback_handlers import callback
 from .bot_cm.bot_control import control
-from .bot_cm.functions import registration_customer, registration_specialist
+from .bot_cm.functions import registration_customer, registration_specialist, check_and_delete_msg
 
 logger = telebot.logger
 telebot.logger.setLevel(logging.DEBUG)
@@ -35,21 +36,24 @@ def start_message(message):
             bot.send_message(message.chat.id, 'Панель администратора', reply_markup = keyboard('admin'))
         else:
             res = bot.send_message(message.chat.id, messages[0].text, reply_markup = keyboard('start'))
-            User.objects.create(chat_id=message.from_user.id, msg_id=res.id, user=message.from_user.username, registration_date=datetime.now(), mode='registration', step=-1)
+            User.objects.create(chat_id=message.from_user.id, msg_id=res.id, msg_time=timezone.now(), user=message.from_user.username, registration_date=timezone.now(), mode='registration', step=-1)
     else:
         if user[0].mode == 'registration':
             if user[0].step == -1:
                 res = bot.send_message(message.chat.id, messages[0].text, reply_markup = keyboard('start'))
                 user[0].msg_id = res.id
+                user[0].msg_time = timezone.now()
                 user[0].save()
             elif user[0].step == 0:
-                bot.delete_message(message.from_user.id, user[0].msg_id)
+                check_and_delete_msg(bot, message.from_user.id, user[0].msg_id, user[0].msg_time)
                 res = bot.send_message(message.from_user.id, 'Выберите кто Вы:', reply_markup = keyboard('start'))
                 user[0].msg_id = res.id
+                user[0].msg_time = timezone.now()
                 user[0].save()
             elif user[0].step == 9 or user[0].step == 4:
                 res = bot.send_message(message.from_user.id, 'Ваш аккаунт на подтверждении. Ожидайте ответа администратора.')
                 user[0].msg_id = res.id
+                user[0].msg_time = timezone.now()
                 user[0].save()
             else:
                 if user[0].role == 'Заказчик': registration_customer(message)

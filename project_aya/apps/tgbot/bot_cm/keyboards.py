@@ -20,7 +20,8 @@ def keyboard(type, params = {}):
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard = True)
         keyboard.add(types.KeyboardButton('👤 Пользователи'))
         keyboard.add(types.KeyboardButton('📄 Объявления'))
-        keyboard.add(types.KeyboardButton('📑 Неподтвержденные пользователи'))
+        keyboard.add(types.KeyboardButton('👔 Неподтвержденные пользователи'))
+        keyboard.add(types.KeyboardButton('📑 Неподтвержденные объявления'))
         keyboard.add(types.KeyboardButton('💬 Опубликовать сообщение'))
     if type == 'send_to_bot':
         keyboard = types.InlineKeyboardMarkup()
@@ -62,6 +63,13 @@ def keyboard(type, params = {}):
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(types.InlineKeyboardButton('<< Предыдущий', callback_data = 'prev_'+str(params['prev'])), types.InlineKeyboardButton('>> Следующий', callback_data = 'next_'+str(params['next'])))
         keyboard.add(types.InlineKeyboardButton('✅ Подтвердить', callback_data = 'confirm_user_'+str(params['user'])), types.InlineKeyboardButton('🚫 Отклонить', callback_data = 'reject_user_'+str(params['user'])))
+    if type == 'postapprove_vacancy':
+        keyboard = types.InlineKeyboardMarkup()
+        keyboard.add(types.InlineKeyboardButton('<< Предыдущий', callback_data = 'vprev_'+str(params['prev'])), types.InlineKeyboardButton('>> Следующий', callback_data = 'vnext_'+str(params['next'])))
+        keyboard.add(types.InlineKeyboardButton('✅ Подтвердить и отправить в канал', callback_data = 'to_channel_'+str(params['vacancy'])))
+        keyboard.add(types.InlineKeyboardButton('✅ Подтвердить и отправить внутрь бота', callback_data = 'to_bot_'+str(params['vacancy'])))
+        keyboard.add(types.InlineKeyboardButton('✅ Подтвердить и отправить в канал и внутрь бота', callback_data = 'to_channel_bot_'+str(params['vacancy'])))
+        keyboard.add(types.InlineKeyboardButton('🚫 Отклонить', callback_data = 'reject_vacancy_'+str(params['vacancy'])))
     if type == 'approve_vacancy':
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(types.InlineKeyboardButton('✅ Подтвердить и отправить в канал', callback_data = 'to_channel_'+str(params['vacancy'])))
@@ -78,7 +86,8 @@ def keyboard(type, params = {}):
         keyboard.add(types.InlineKeyboardButton('🍒 Заказчик', callback_data = 'customer'))
     if type == 'vacancy_to_bot':
         keyboard = types.InlineKeyboardMarkup()
-        keyboard.add(types.InlineKeyboardButton('➡️ Написать заказчику', url = 'https://t.me/'+params['username']))
+        if params['username'] is not None:
+            keyboard.add(types.InlineKeyboardButton('➡️ Написать заказчику', url = 'https://t.me/'+params['username']))
         keyboard.add(types.InlineKeyboardButton('➡️ Разместить свой заказ', url = 'https://t.me/aya_cyberbot'))
     if type == 'edit_customer_account':
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard = True)

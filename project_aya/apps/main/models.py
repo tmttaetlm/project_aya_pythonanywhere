@@ -16,6 +16,7 @@ class User(models.Model):
     description = models.CharField('О себе', max_length = 1000, null = True)
     registration_date = models.DateTimeField('Дата регистрации', null = True)
     msg_id = models.CharField('ID сообщения', max_length = 1000, null = True)
+    msg_time = models.DateTimeField('Время сообщения', null = True)
     mode = models.CharField('Процесс', max_length = 50, null = True)
     step = models.IntegerField('Шаг', null = True)
 
@@ -32,6 +33,7 @@ class Vacancy(models.Model):
     text = models.CharField('Текст', max_length = 500, null = True)
     date = models.DateTimeField('Дата публикации', null = True)
     city = models.CharField('Город для публикации', max_length = 500, null = True)
+    confirmed = models.IntegerField('Опубликован')
 
     def __str__(self):
         return self.text
