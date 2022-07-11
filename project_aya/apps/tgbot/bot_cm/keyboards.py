@@ -23,6 +23,7 @@ def keyboard(type, params = {}):
         keyboard.add(types.KeyboardButton('👔 Неподтвержденные пользователи'))
         keyboard.add(types.KeyboardButton('📑 Неподтвержденные объявления'))
         keyboard.add(types.KeyboardButton('💬 Опубликовать сообщение'))
+        keyboard.add(types.KeyboardButton('🈲 Слова-раздражители для бота'))
     if type == 'send_to_bot':
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(types.InlineKeyboardButton('🚀 Моментально', callback_data = 'send_now'))

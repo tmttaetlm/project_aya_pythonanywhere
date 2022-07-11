@@ -2,7 +2,7 @@ import re
 from datetime import timedelta
 from django.utils import timezone
 from django import forms
-from main.models import User, Message
+from main.models import User, Message, Words
 from .keyboards import keyboard
 from .functions import registration_customer, registration_specialist, create_one_click_vacancy, check_and_delete_msg
 
@@ -12,6 +12,16 @@ def handler(bot, message):
 
     if len(admin) == 0: admin_id = 248598993
     else: admin_id = admin[0].chat_id
+
+
+    _words = Words.objects.filter(clue='redirect')
+    for _word in _words:
+        if message.text.lower().find(_word.word) >= 0:
+            #users = User.objects.filter(role='Исполнитель')
+            #for user in users:
+                #bot.send_message(user.chat_id, message.text)
+            bot.send_message(248598993, message.text)
+            break
 
     if message.text == 'Рефреш меню':
         bot.send_message(message.chat.id, 'Рады снова Вас видеть, '+bot_user.name, reply_markup = keyboard('admin'))
@@ -148,3 +158,12 @@ def handler(bot, message):
         on_time_msg = Message.objects.filter(clue='on_time_msg').order_by('-id').first()
         on_time_msg.clue = 'on_time_msg|'+message.text
         on_time_msg.save()
+    if bot_user.mode == 'add_word' and bot_user.step == 1:
+        check_and_delete_msg(bot, admin_id, admin[0].msg_id, admin[0].msg_time)
+        res = bot.send_message(admin_id, 'Слово-раздражитель сохранено.')
+        bot_user.msg_id = None
+        bot_user.msg_time = None
+        bot_user.step = None
+        bot_user.mode = None
+        bot_user.save()
+        Words.objects.create(clue='redirect', word=message.text.lower())

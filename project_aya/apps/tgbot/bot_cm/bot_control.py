@@ -1,7 +1,7 @@
 from telebot import types
 from datetime import timedelta
 from django.utils import timezone
-from main.models import User, Message, Vacancy, Specialisation
+from main.models import User, Message, Vacancy, Specialisation, Words
 from .keyboards import keyboard
 from .functions import search_master, not_confirmed_users, not_confirmed_ads
 
@@ -38,6 +38,25 @@ def control(bot, message):
         not_confirmed_ads(bot, 1, first_call=True)
     if message.text == '💬 Опубликовать сообщение':
         res = bot.send_message(admin_id, 'Как вы хотите отправить сообщение боту?', reply_markup = keyboard('send_to_bot'))
+        admin[0].msg_id = res.id
+        admin[0].msg_time = timezone.now()
+        admin[0].save()
+    if message.text == '🈲 Слова-раздражители для бота':
+        _words = Words.objects.filter(clue='redirect')
+        kb = types.InlineKeyboardMarkup()
+        if len(_words) > 0:
+            for i in range(0, len(_words), 3):
+                if len(_words) > i and len(_words) <= i+1:
+                    kb.row(types.InlineKeyboardButton(_words[i].word, callback_data = 'word_'+_words[i].word))
+                elif len(_words) > i+1 and len(_words) <= i+2:
+                    kb.row(types.InlineKeyboardButton(_words[i].word, callback_data = 'word_'+_words[i].word),types.InlineKeyboardButton(_words[i+1].word, callback_data = 'word_'+_words[i+1].word))
+                elif len(_words) > i+2:
+                    kb.row(types.InlineKeyboardButton(_words[i].word, callback_data = 'word_'+_words[i].word),types.InlineKeyboardButton(_words[i+1].word, callback_data = 'word_'+_words[i+1].word),types.InlineKeyboardButton(_words[i+2].word, callback_data = 'word_'+_words[i+2].word))
+            kb.add(types.InlineKeyboardButton('Добавить слово-раздражитель', callback_data = 'word_add'))
+            res = bot.send_message(admin_id, 'Слова, на которые реагирует бот:', reply_markup = kb)
+        else:
+            kb.add(types.InlineKeyboardButton('Добавить', callback_data = 'word_add'))
+            res = bot.send_message(admin_id, 'Список слов-раздражителей пуст', reply_markup = kb)
         admin[0].msg_id = res.id
         admin[0].msg_time = timezone.now()
         admin[0].save()

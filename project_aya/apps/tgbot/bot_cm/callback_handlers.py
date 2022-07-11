@@ -193,5 +193,12 @@ def callback(bot, callback_message):
     if callback_message.data.startswith('vnext_') or callback_message.data.startswith('vprev_'):
         num = callback_message.data[callback_message.data.index('_')+1:len(callback_message.data)]
         if num != '-': not_confirmed_ads(bot, num)
+    if callback_message.data.startswith('word_'):
+        word = callback_message.data[callback_message.data.index('_')+1:len(callback_message.data)]
+        if word == 'add':
+            bot.edit_message_text(chat_id=admin_id, message_id=admin[0].msg_id, text='Отправьте слово-раздражитель для бота')
+            admin[0].mode = 'add_word'
+            admin[0].step = 1
+            admin[0].save()
     ################
     #bot.answer_callback_message_query(callback_message.id)
