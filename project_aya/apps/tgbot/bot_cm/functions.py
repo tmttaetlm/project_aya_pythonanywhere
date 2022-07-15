@@ -15,11 +15,12 @@ def not_confirmed_ads(bot, num, data=None, first_call=False):
         admin_id = admin[0].chat_id
     _vacancy = Vacancy.objects.filter(confirmed=None).order_by('-id')
     author = User.objects.get(chat_id=_vacancy[int(num)-1].chat_id)
+    postapprove_msg = Info.objects.get(clue='postapprove_ads_msg_id')
     if len(_vacancy) > 0:
         msg = f'Неподтвержденное объявление {num}/{len(_vacancy)}:'
         msg += '\n\n<b>ID вакансии:</b> '+str(_vacancy[int(num)-1].id)
         msg += '\n<b>Дата создания:</b> '+_vacancy[int(num)-1].date.strftime('%d.%m.%Y %H:%M:%S')
-        msg += '\n<b>Город, куда опубликовать:</b> '+_vacancy[int(num)-1].city
+        msg += '\n<b>Город, куда опубликовать:</b> '+(_vacancy[int(num)-1].city if _vacancy[int(num)-1].city is not None else 'НЕ УКАЗАН')
         msg += '\n<b>Текст:</b>\n'+_vacancy[int(num)-1].text
         msg += '\n<b>Автор:</b> ' + author.name
         msg += '\n<b>ID автора:</b> ' + str(author.chat_id)
@@ -27,16 +28,16 @@ def not_confirmed_ads(bot, num, data=None, first_call=False):
         if author.user is not None: msg += '\n<b>Telegram:</b> @' + author.user
         if first_call:
             res = bot.send_message(admin_id, msg, reply_markup = keyboard('postapprove_vacancy', {'vacancy': _vacancy[int(num)-1].id, 'next': (int(num)+1) if int(num) < len(_vacancy) else '-', 'prev': (int(num)-1) if int(num) > 1 else '-'}), parse_mode='HTML')
-            admin[0].msg_id = res.id
-            admin[0].msg_time = timezone.now()
-            admin[0].save()
+            postapprove_msg.text = res.id
+            postapprove_msg.save()
         else:
-            bot.edit_message_text(chat_id=admin_id, message_id=admin[0].msg_id, text=msg, reply_markup = keyboard('postapprove_vacancy', {'vacancy': _vacancy[int(num)-1].id, 'next': (int(num)+1) if int(num) < len(_vacancy) else '-', 'prev': (int(num)-1) if int(num) > 1 else '-'}), parse_mode='HTML')
+            bot.edit_message_text(chat_id=admin_id, message_id=postapprove_msg.text, text=msg, reply_markup = keyboard('postapprove_vacancy', {'vacancy': _vacancy[int(num)-1].id, 'next': (int(num)+1) if int(num) < len(_vacancy) else '-', 'prev': (int(num)-1) if int(num) > 1 else '-'}), parse_mode='HTML')
     else:
         bot.send_message(admin_id, 'Неподтвержденных объявлений не найдено.')
 
 def not_confirmed_users(bot, num, data=None, first_call=False):
     admin = User.objects.filter(role='Админ')
+    postapprove_msg = Info.objects.get(clue='postapprove_users_msg_id')
     if len(admin) == 0:
         admin_id = 248598993
         admin = User.objects.filter(chat_id=admin_id)
@@ -65,11 +66,10 @@ def not_confirmed_users(bot, num, data=None, first_call=False):
         msg += '\n<b>Дата регистрации:</b> '+users[int(num)-1].registration_date.strftime('%d.%m.%Y %H:%M:%S')
         if first_call:
             res = bot.send_message(admin_id, msg, reply_markup = keyboard('postapprove_user', {'user': users[int(num)-1].chat_id, 'next': (int(num)+1) if int(num) < len(users) else '-', 'prev': (int(num)-1) if int(num) > 1 else '-'}), parse_mode='HTML')
-            admin[0].msg_id = res.id
-            admin[0].msg_time = timezone.now()
+            postapprove_msg.text = res.id
             admin[0].save()
         else:
-            bot.edit_message_text(chat_id=admin_id, message_id=admin[0].msg_id, text=msg, reply_markup = keyboard('postapprove_user', {'user': users[int(num)-1].chat_id, 'next': (int(num)+1) if int(num) < len(users) else '-', 'prev': (int(num)-1) if int(num) > 1 else '-'}), parse_mode='HTML')
+            bot.edit_message_text(chat_id=admin_id, message_id=postapprove_msg.text, text=msg, reply_markup = keyboard('postapprove_user', {'user': users[int(num)-1].chat_id, 'next': (int(num)+1) if int(num) < len(users) else '-', 'prev': (int(num)-1) if int(num) > 1 else '-'}), parse_mode='HTML')
     else:
         bot.send_message(admin_id, 'Неподтвержденных пользователей не найдено.')
 
@@ -343,29 +343,48 @@ def check_and_delete_msg(bot, chat_id, msg_id, msg_time):
             except:
                 bot.send_message(248598993, 'Попытка удаления сообщения '+str(msg_id)+' в чате '+str(chat_id)+' неудачна')
 
-def confirm_ads(bot, admin_id, admin, mode, callback_message):
+def confirm_ads(bot, admin_id, admin, mode, callback_message, postfactum):
     vacancy_id = callback_message.data[callback_message.data.rfind('_')+1:len(callback_message.data)]
     _vacancy = Vacancy.objects.get(id=vacancy_id)
+    author = User.objects.get(chat_id=_vacancy.chat_id)
+    service_msg = ''
+    if _vacancy.text == '':
+        service_msg += 'В вакансии c ID '+vacancy_id+' текст описания пустой!\n'
+    if _vacancy.city is None:
+        service_msg += 'В вакансии c ID '+vacancy_id+' не указан город!\n'
+    if author.user is None:
+        service_msg += 'Не указано имя пользователя в Telegram. Для связи будет указан номер телефона.\n'
+    else:
+        phone = '+'+str(author.phone) if str(author.phone) != '-' else '-'
     if mode == 'to_bot':
         users = User.objects.filter(city=_vacancy.city, role='Исполнитель')
-        author = User.objects.get(chat_id=_vacancy.chat_id)
         for usr in users:
-            msg_text = '⭕️ Новый Заказ\n\n'
-            msg_text += '▫️ Описание:\n'+_vacancy.text+'\n\n'
-            msg_text += '👤 Имя заказчика: '+author.name+'\n'
+            msg_text = '⭕️ <b>Новый Заказ</b>\n\n'
+            msg_text += '▫️ <b>Описание:</b>\n'+_vacancy.text+'\n'
+            msg_text += '👤 <b>Имя заказчика:</b> '+author.name+'\n'
+            if _vacancy.city is not None:
+                msg_text += '👤 <b>Город:</b> '+_vacancy.city+'\n'
             if author.user is not None:
-                msg_text += '📨 Написать автору: '+author.user+'\n'
+                msg_text += '📨 <b>Написать автору:</b> '+author.user+'\n'
             else:
                 phone = '+'+str(author.phone) if str(author.phone) != '-' else '-'
-                msg_text += '📱 Номер телефона: '+phone+'\n'
-            bot.send_message(usr.chat_id, msg_text, reply_markup = keyboard('vacancy_to_bot', {'username': usr.user}))
-        author = User.objects.get(chat_id=_vacancy.chat_id)
+                msg_text += '📱 <b>Номер телефона:</b> '+phone+'\n'
+            try:
+                res = bot.send_message(usr.chat_id, msg_text, reply_markup = keyboard('vacancy_to_bot', {'username': usr.user}), parse_mode='HTML')
+            except:
+                continue
+                #bot.send_message(admin_id, f'Не удалось отправить сообщение пользователю @{usr.user} (ID: {usr.chat_id}, Имя: {usr.name})')
         check_and_delete_msg(bot, _vacancy.chat_id, author.msg_id, author.msg_time)
-        bot.send_message(_vacancy.chat_id, '✅ Администрация подтвердила Ваше объявление с ID '+vacancy_id)
+        bot.send_message(_vacancy.chat_id, '✅ Администрация подтвердила Ваше объявление с ID '+vacancy_id+'. Объявление разослано всем зарегистрированным исполнителям')
         check_and_delete_msg(bot, admin_id, admin[0].msg_id, admin[0].msg_time)
-        bot.send_message(admin_id, 'Вы подтвердили и отправили пользователям бота объявление с ID '+vacancy_id)
+        if postfactum:
+            admin_msg = 'Вы подтвердили и отправили пользователям бота объявление с ID '+vacancy_id+'\n\nОбъявление было отправлено из списка с неподтвержденными объявлениями.'
+        else:
+            admin_msg = 'Вы подтвердили и отправили пользователям бота объявление с ID '+vacancy_id
+        if service_msg != '':
+            admin_msg += '\n\nСервисные сообщения:\n'+service_msg
+        bot.send_message(admin_id, admin_msg)
     if mode == 'to_channel':
-        author = User.objects.get(chat_id=_vacancy.chat_id)
         msg_text = '⭕️ Новый Заказ\n\n'
         msg_text += '▫️ Описание:\n'+_vacancy.text+'\n\n'
         msg_text += '👤 Имя заказчика: '+author.name+'\n'
@@ -395,11 +414,85 @@ def confirm_ads(bot, admin_id, admin, mode, callback_message):
             'Zhezkazgan': '@jezkazgan_jumys'
         }
         #bot.send_message('@tmttae', msg_text, reply_markup = keyboard('vacancy_to_bot', {'username': author.user}))
-        res = bot.send_message(groups.get(_vacancy.city), msg_text, reply_markup = keyboard('vacancy_to_bot', {'username': author.user}))
+        res = bot.send_message(groups.get('Неважно'), msg_text, reply_markup = keyboard('vacancy_to_bot', {'username': author.user}))
+        user_msg = '✅ Администрация подтвердила Ваше объявление с ID '+vacancy_id+'. Объявление размещено в общую группу.'
+        admin_msg = 'Вы подтвердили и отправили в канал объявление с ID '+vacancy_id+'. Объявление размещено в общую группу.'
+        if _vacancy.city is not None:
+            res = bot.send_message(groups.get(_vacancy.city), msg_text, reply_markup = keyboard('vacancy_to_bot', {'username': author.user}))
+            user_msg = '✅ Администрация подтвердила Ваше объявление с ID '+vacancy_id+'. Объявление размещено в общую группу и в группу, указанного вами города.'
+            admin_msg = 'Вы подтвердили и отправили в канал объявление с ID '+vacancy_id+'. Объявление размещено в общую группу и в группу, указанного города.'
+        else:
+            service_msg += 'Объявление будет отправлено только в общую группу.\n'
+        check_and_delete_msg(bot, _vacancy.chat_id, author.msg_id, author.msg_time)
+        bot.send_message(_vacancy.chat_id, user_msg)
+        check_and_delete_msg(bot, admin_id, admin[0].msg_id, admin[0].msg_time)
+        if postfactum:
+            admin_msg += '\n\nОбъявление было отправлено из списка с неподтвержденными объявлениями.'
+        if service_msg != '':
+            admin_msg += '\n\nСервисные сообщения:\n'+service_msg
+        bot.send_message(admin_id, admin_msg)
         _vacancy.msg_id = res.id
+    if mode == 'to_everywhere':
+        users = User.objects.filter(city=_vacancy.city, role='Исполнитель')
+        for usr in users:
+            msg_text = '⭕️ <b>Новый Заказ</b>\n\n'
+            msg_text += '▫️ <b>Описание:</b>\n'+_vacancy.text+'\n'
+            msg_text += '👤 <b>Имя заказчика:</b> '+author.name+'\n'
+            if _vacancy.city is not None:
+                msg_text += '👤 <b>Город:</b> '+_vacancy.city+'\n'
+            if author.user is not None:
+                msg_text += '📨 <b>Написать автору:</b> '+author.user+'\n'
+            else:
+                phone = '+'+str(author.phone) if str(author.phone) != '-' else '-'
+                msg_text += '📱 <b>Номер телефона:</b> '+phone+'\n'
+            try:
+                res = bot.send_message(usr.chat_id, msg_text, reply_markup = keyboard('vacancy_to_bot', {'username': usr.user}), parse_mode='HTML')
+            except:
+                continue
+                #bot.send_message(admin_id, f'Не удалось отправить сообщение пользователю @{usr.user} (ID: {usr.chat_id}, Имя: {usr.name})')
+        msg_text = '⭕️ Новый Заказ\n\n'
+        msg_text += '▫️ Описание:\n'+_vacancy.text+'\n\n'
+        msg_text += '👤 Имя заказчика: '+author.name+'\n'
+        if author.user is not None:
+            msg_text += '📨 Написать автору: '+author.user+'\n'
+        else:
+            phone = '+'+str(author.phone) if str(author.phone) != '-' else '-'
+            msg_text += '📱 Номер телефона: '+phone+'\n'
+        groups = {
+            'Неважно': '@kazakhstan_jumys',
+            'Almaty': '@almaty_jumys',
+            'Nur-Sultan': '@astana_jumys',
+            'Shymkent': '@shymkent_job',
+            'Kyzylorda': '@qyzylorda_job',
+            'Karagandy': '@karagandy_job',
+            'Taraz': '@taraz_job',
+            'Aktau': '@aktau_jumys',
+            'Atyrau': '@atyrau_job',
+            'Aktobe': '@jobaktobe',
+            'Oral': '@oral_job',
+            'Petropavl': '@petropavl_job',
+            'Pavlodar': '@job_pavlodar',
+            'Kostanay': '@kostanay_job',
+            'Oskemen': '@oskemen_job',
+            'Semey': '@semey_job',
+            'Taldykorgan': '@taldykorgan_jumys',
+            'Zhezkazgan': '@jezkazgan_jumys'
+        }
+        #bot.send_message('@tmttae', msg_text, reply_markup = keyboard('vacancy_to_bot', {'username': author.user}))
+        res = bot.send_message(groups.get('Неважно'), msg_text, reply_markup = keyboard('vacancy_to_bot', {'username': author.user}))
         check_and_delete_msg(bot, _vacancy.chat_id, author.msg_id, author.msg_time)
         bot.send_message(_vacancy.chat_id, '✅ Администрация подтвердила Ваше объявление с ID '+vacancy_id)
-        check_and_delete_msg(bot, admin_id, admin[0].msg_id, admin[0].msg_time)
-        bot.send_message(admin_id, 'Вы подтвердили и отправили в канал объявление с ID '+vacancy_id)
+        admin_msg = 'Вы подтвердили объявление с ID '+vacancy_id+'. \nОбъявление разослано всем зарегистрированным исполнителям.\n'
+        if _vacancy.city is not None:
+            res = bot.send_message(groups.get(_vacancy.city), msg_text, reply_markup = keyboard('vacancy_to_bot', {'username': author.user}))
+            admin_msg += 'Объявление размещено в общую группу и в группу, указанного города.\n'
+        else:
+            admin_msg += 'Объявление размещено в общую группу.\n'
+        if postfactum:
+            admin_msg += '\nОбъявление было отправлено из списка с неподтвержденными объявлениями.'
+        if service_msg != '':
+            admin_msg += '\n\nСервисные сообщения:\n'+service_msg
+        bot.send_message(admin_id, admin_msg)
     _vacancy.confirmed = 1
     _vacancy.save()
+    not_confirmed_ads(bot, 1)

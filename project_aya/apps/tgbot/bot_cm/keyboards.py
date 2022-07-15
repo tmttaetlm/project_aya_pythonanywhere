@@ -24,6 +24,7 @@ def keyboard(type, params = {}):
         keyboard.add(types.KeyboardButton('📑 Неподтвержденные объявления'))
         keyboard.add(types.KeyboardButton('💬 Опубликовать сообщение'))
         keyboard.add(types.KeyboardButton('🈲 Слова-раздражители для бота'))
+        keyboard.add(types.KeyboardButton('⤴️ Автопересылка объявлении'))
     if type == 'send_to_bot':
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(types.InlineKeyboardButton('🚀 Моментально', callback_data = 'send_now'))
@@ -64,6 +65,12 @@ def keyboard(type, params = {}):
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(types.InlineKeyboardButton('<< Предыдущий', callback_data = 'prev_'+str(params['prev'])), types.InlineKeyboardButton('>> Следующий', callback_data = 'next_'+str(params['next'])))
         keyboard.add(types.InlineKeyboardButton('✅ Подтвердить', callback_data = 'confirm_user_'+str(params['user'])), types.InlineKeyboardButton('🚫 Отклонить', callback_data = 'reject_user_'+str(params['user'])))
+    if type == 'approve_vacancy':
+        keyboard = types.InlineKeyboardMarkup()
+        keyboard.add(types.InlineKeyboardButton('✅ Подтвердить и отправить в канал', callback_data = 'to_channel_'+str(params['vacancy'])))
+        keyboard.add(types.InlineKeyboardButton('✅ Подтвердить и отправить внутрь бота', callback_data = 'to_bot_'+str(params['vacancy'])))
+        keyboard.add(types.InlineKeyboardButton('✅ Подтвердить и отправить в канал и внутрь бота', callback_data = 'to_channel_bot_'+str(params['vacancy'])))
+        keyboard.add(types.InlineKeyboardButton('🚫 Отклонить', callback_data = 'reject_vacancy_'+str(params['vacancy'])))
     if type == 'postapprove_vacancy':
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(types.InlineKeyboardButton('<< Предыдущий', callback_data = 'vprev_'+str(params['prev'])), types.InlineKeyboardButton('>> Следующий', callback_data = 'vnext_'+str(params['next'])))
@@ -71,12 +78,10 @@ def keyboard(type, params = {}):
         keyboard.add(types.InlineKeyboardButton('✅ Подтвердить и отправить внутрь бота', callback_data = 'to_bot_'+str(params['vacancy'])))
         keyboard.add(types.InlineKeyboardButton('✅ Подтвердить и отправить в канал и внутрь бота', callback_data = 'to_channel_bot_'+str(params['vacancy'])))
         keyboard.add(types.InlineKeyboardButton('🚫 Отклонить', callback_data = 'reject_vacancy_'+str(params['vacancy'])))
-    if type == 'approve_vacancy':
+    if type == 'approve_redirect':
         keyboard = types.InlineKeyboardMarkup()
-        keyboard.add(types.InlineKeyboardButton('✅ Подтвердить и отправить в канал', callback_data = 'to_channel_'+str(params['vacancy'])))
-        keyboard.add(types.InlineKeyboardButton('✅ Подтвердить и отправить внутрь бота', callback_data = 'to_bot_'+str(params['vacancy'])))
-        keyboard.add(types.InlineKeyboardButton('✅ Подтвердить и отправить в канал и внутрь бота', callback_data = 'to_channel_bot_'+str(params['vacancy'])))
-        keyboard.add(types.InlineKeyboardButton('🚫 Отклонить', callback_data = 'reject_vacancy_'+str(params['vacancy'])))
+        keyboard.add(types.InlineKeyboardButton('✅ Подтвердить', callback_data = 'confirm_redirect_'+str(params['msg'])+'|'+str(params['chat'])))
+        keyboard.add(types.InlineKeyboardButton('🚫 Удалить', callback_data = 'reject_redirect_'+str(params['msg'])+'|'+str(params['chat'])))
     if type == 'approve_text':
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(types.InlineKeyboardButton('✅ Подтвердить', callback_data = 'confirm_text_'+str(params['vacancy'])))

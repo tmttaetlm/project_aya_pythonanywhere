@@ -2,26 +2,16 @@ import re
 from datetime import timedelta
 from django.utils import timezone
 from django import forms
-from main.models import User, Message, Words
+from main.models import User, Message, Words, Info
 from .keyboards import keyboard
 from .functions import registration_customer, registration_specialist, create_one_click_vacancy, check_and_delete_msg
 
-def handler(bot, message):
+def message_handler(bot, message):
     admin = User.objects.filter(role='Админ')
     bot_user = User.objects.get(chat_id=message.from_user.id)
 
     if len(admin) == 0: admin_id = 248598993
     else: admin_id = admin[0].chat_id
-
-
-    _words = Words.objects.filter(clue='redirect')
-    for _word in _words:
-        if message.text.lower().find(_word.word) >= 0:
-            #users = User.objects.filter(role='Исполнитель')
-            #for user in users:
-                #bot.send_message(user.chat_id, message.text)
-            bot.send_message(248598993, message.text)
-            break
 
     if message.text == 'Рефреш меню':
         bot.send_message(message.chat.id, 'Рады снова Вас видеть, '+bot_user.name, reply_markup = keyboard('admin'))
@@ -167,3 +157,30 @@ def handler(bot, message):
         bot_user.mode = None
         bot_user.save()
         Words.objects.create(clue='redirect', word=message.text.lower())
+
+def channel_post_handler(bot, message):
+    admin = User.objects.filter(role='Админ')
+
+    if len(admin) == 0: admin_id = 248598993
+    else: admin_id = admin[0].chat_id
+
+    _autoredirect = Info.objects.get(clue='autoredirect_msg')
+    _words = Words.objects.filter(clue='redirect')
+    for _word in _words:
+        if message.text.lower().find(_word.word) >= 0:
+            msg = f'Пересылка сообщения с объявлением из канала "{message.chat.title}".\n'
+            msg += '\n<b>Канал:</b> @'+message.chat.username
+            msg += '\n<b>Автор:</b> '+message.author_signature
+            msg += '\n<b>Текст:</b>\n' + message.text
+            if _autoredirect.text == '1':
+                users = User.objects.filter(role='Исполнитель')
+                for user in users:
+                    bot.send_message(user.chat_id, msg)
+                #bot.send_message(248598993, msg, parse_mode='HTML')
+            else:
+                res = bot.send_message(admin_id, msg, reply_markup = keyboard('approve_redirect', {'msg': message.message_id, 'chat': message.chat.id}), parse_mode='HTML')
+                admin[0].msg_id = res.id
+                admin[0].msg_time = timezone.now()
+                admin[0].save()
+                #bot.send_message(248598993, msg)
+            break

@@ -190,9 +190,11 @@ def callback(bot, callback_message):
     if callback_message.data.startswith('next_') or callback_message.data.startswith('prev_'):
         num = callback_message.data[callback_message.data.index('_')+1:len(callback_message.data)]
         if num != '-': not_confirmed_users(bot, num)
+        return
     if callback_message.data.startswith('vnext_') or callback_message.data.startswith('vprev_'):
         num = callback_message.data[callback_message.data.index('_')+1:len(callback_message.data)]
         if num != '-': not_confirmed_ads(bot, num)
+        return
     if callback_message.data.startswith('word_'):
         word = callback_message.data[callback_message.data.index('_')+1:len(callback_message.data)]
         if word == 'add':
@@ -200,5 +202,40 @@ def callback(bot, callback_message):
             admin[0].mode = 'add_word'
             admin[0].step = 1
             admin[0].save()
+        return
+    if callback_message.data.startswith('confirm_redirect_'):
+        msg_id = callback_message.data[callback_message.data.rfind('_')+1:callback_message.data.find('|')]
+        chat_id = callback_message.data[callback_message.data.find('|')+1:len(callback_message.data)]
+        msg = callback_message.message.text.replace('Автор', '<b>Автор</b>')
+        msg = msg.replace('Текст', '<b>Текст</b>')
+        service_msg = 'Не удалось отправить сообщение следующим пользователям:'
+        users = User.objects.filter(role='Исполнитель', mode=None)
+        for user in users:
+            try:
+                bot.send_message(user.chat_id, msg, parse_mode='HTML')
+            except:
+                service_msg += '\n'+str(user.chat_id)+' | '+('@'+user.user if user.user is not None else '+'+user.phone)
+        bot.send_message(chat_id, '✅ '+messages[3].text, reply_to_message_id=msg_id)
+        check_and_delete_msg(bot, admin_id, admin[0].msg_id, admin[0].msg_time)
+        bot.send_message(admin_id, 'Вы отправили исполнителям сообщение с объявлением, пересылаемое с канала в бота.')
+        if service_msg != 'Не удалось отправить сообщение следующим пользователям:':
+            bot.send_message(248598993, service_msg)
+        return
+    if callback_message.data.startswith('reject_redirect_'):
+        check_and_delete_msg(bot, admin_id, admin[0].msg_id, admin[0].msg_time)
+        bot.send_message(admin_id, 'Вы отклонили сообщение с объявлением, пересылаемое с канала в бота.')
+        return
+    if callback_message.data.startswith('autoredirect'):
+        autoredirect = Info.objects.get(clue='autoredirect_msg')
+        mode = callback_message.data[callback_message.data.find('_')+1:len(callback_message.data)]
+        if mode == 'on':
+            autoredirect.text = '1'
+            msg = 'Автопересылка объявлении включена.'
+        elif mode == 'off':
+            autoredirect.text = '0'
+            msg = 'Автопересылка объявлении отключена.'
+        autoredirect.save()
+        check_and_delete_msg(bot, admin_id, admin[0].msg_id, admin[0].msg_time)
+        bot.send_message(admin_id, msg)
     ################
     #bot.answer_callback_message_query(callback_message.id)

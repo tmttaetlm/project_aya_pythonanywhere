@@ -1,7 +1,7 @@
 from telebot import types
 from datetime import timedelta
 from django.utils import timezone
-from main.models import User, Message, Vacancy, Specialisation, Words
+from main.models import User, Message, Vacancy, Specialisation, Words, Info
 from .keyboards import keyboard
 from .functions import search_master, not_confirmed_users, not_confirmed_ads
 
@@ -57,6 +57,18 @@ def control(bot, message):
         else:
             kb.add(types.InlineKeyboardButton('Добавить', callback_data = 'word_add'))
             res = bot.send_message(admin_id, 'Список слов-раздражителей пуст', reply_markup = kb)
+        admin[0].msg_id = res.id
+        admin[0].msg_time = timezone.now()
+        admin[0].save()
+    if message.text == '⤴️ Автопересылка объявлении':
+        autoredirect = Info.objects.get(clue='autoredirect_msg')
+        kb = types.InlineKeyboardMarkup()
+        if autoredirect.text == '0':
+            kb.add(types.InlineKeyboardButton('Включить', callback_data = 'autoredirect_on'))
+            res = bot.send_message(admin_id, 'Автопересылка объявлении отключена.', reply_markup=kb)
+        else:
+            kb.add(types.InlineKeyboardButton('Отключить', callback_data = 'autoredirect_off'))
+            res = bot.send_message(admin_id, 'Автопересылка объявлении включена.', reply_markup=kb)
         admin[0].msg_id = res.id
         admin[0].msg_time = timezone.now()
         admin[0].save()

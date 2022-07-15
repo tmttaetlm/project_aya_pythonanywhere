@@ -11,7 +11,7 @@ from django.utils import timezone
 from main.models import User, Message
 
 from .bot_cm.keyboards import keyboard
-from .bot_cm.message_handlers import handler
+from .bot_cm.message_handlers import message_handler, channel_post_handler
 from .bot_cm.callback_handlers import callback
 from .bot_cm.bot_control import control
 from .bot_cm.functions import registration_customer, registration_specialist, check_and_delete_msg
@@ -75,8 +75,12 @@ def user_callbacks(call):
 
 @bot.message_handler(content_types=['text', 'contact', 'photo'])
 def get_text_messages(message):
-    handler(bot, message)
+    message_handler(bot, message)
     control(bot, message)
+
+@bot.channel_post_handler(content_types=['text'])
+def get_text_messages(message):
+    channel_post_handler(bot, message)
 
 # Обработчик
 @csrf_exempt
