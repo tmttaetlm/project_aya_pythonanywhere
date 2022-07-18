@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timezone, timedelta
 from django.utils import timezone
 from main.models import User, Vacancy, Message, Info, Specialisation
 from .keyboards import keyboard
@@ -149,15 +149,14 @@ def callback(bot, callback_message):
         bot.send_message(user_id, '🚫 Администрация отклонила Ваш аккаунт! Попробуйте зарегистрироваться заново.')
         bot.send_message(admin_id, 'Аккаунт пользователя'+((' @'+tmp_user.user) if tmp_user.user != None else '')+'(Имя: '+tmp_user.name+' ID: '+user_id+') отклонён')
         return
-    if callback_message.data.find('to_bot') >= 0:
+    if callback_message.data.startswith('to_bot'):
         confirm_ads(bot, admin_id, admin, 'to_bot', callback_message)
         return
-    if callback_message.data.find('to_channel') >= 0:
+    if callback_message.data.startswith('to_channel'):
         confirm_ads(bot, admin_id, admin, 'to_channel', callback_message)
         return
-    if callback_message.data.find('to_channel_bot') >= 0:
-        confirm_ads(bot, admin_id, admin, 'to_bot', callback_message)
-        confirm_ads(bot, admin_id, admin, 'to_channel', callback_message)
+    if callback_message.data.startswith('to_everywhere'):
+        confirm_ads(bot, admin_id, admin, 'to_everywhere', callback_message)
         return
     if callback_message.data.find('reject_vacancy') >= 0:
         vacancy_id = callback_message.data[callback_message.data.rfind('_')+1:len(callback_message.data)]
@@ -222,8 +221,11 @@ def callback(bot, callback_message):
             bot.send_message(248598993, service_msg)
         return
     if callback_message.data.startswith('reject_redirect_'):
+        msg_id = callback_message.data[callback_message.data.rfind('_')+1:callback_message.data.find('|')]
+        chat_id = callback_message.data[callback_message.data.find('|')+1:len(callback_message.data)]
         check_and_delete_msg(bot, admin_id, admin[0].msg_id, admin[0].msg_time)
         bot.send_message(admin_id, 'Вы отклонили сообщение с объявлением, пересылаемое с канала в бота.')
+        bot.send_message(chat_id, messages[6].text, reply_to_message_id=msg_id)
         return
     if callback_message.data.startswith('autoredirect'):
         autoredirect = Info.objects.get(clue='autoredirect_msg')
@@ -237,5 +239,27 @@ def callback(bot, callback_message):
         autoredirect.save()
         check_and_delete_msg(bot, admin_id, admin[0].msg_id, admin[0].msg_time)
         bot.send_message(admin_id, msg)
+    if callback_message.data.startswith('yes_it_is_ads'):
+        msg_id = callback_message.data[callback_message.data.rfind('_')+1:callback_message.data.find('|')]
+        chat_id = callback_message.data[callback_message.data.find('|')+1:len(callback_message.data)]
+        msg = f'Пересылка сообщения с объявлением. \n'
+        msg += '\n<b>Чат:</b> '+callback_message.message.chat.title
+        if callback_message.message.chat.username is not None:
+            msg += '\n<b>Ссылка на чат:</b> @'+callback_message.message.chat.username
+        msg += '\n<b>Автор:</b> '+('@'+callback_message.message.reply_to_message.from_user.username if callback_message.message.reply_to_message.from_user.username is not None else callback_message.message.reply_to_message.from_user.first_name)
+        msg += '\n<b>Текст:</b>\n' + callback_message.message.reply_to_message.text
+        res = bot.send_message(admin_id, msg, reply_markup = keyboard('approve_redirect', {'msg': msg_id, 'chat': chat_id}), parse_mode='HTML')
+        admin[0].msg_id = res.id
+        admin[0].msg_time = timezone.now()
+        admin[0].save()
+        utc_time = datetime.fromtimestamp(callback_message.message.date, timezone.utc)
+        local_time = utc_time.astimezone()
+        check_and_delete_msg(bot, callback_message.message.chat.id, callback_message.message.id, local_time)
+        bot.send_message(callback_message.message.chat.id, messages[4].text, reply_to_message_id=msg_id)
+    if callback_message.data == 'no_it_is_not_ads':
+        utc_time = datetime.fromtimestamp(callback_message.message.date, timezone.utc)
+        local_time = utc_time.astimezone()
+        check_and_delete_msg(bot, callback_message.message.chat.id, callback_message.message.id, local_time)
+        bot.send_message(callback_message.message.chat.id, 'Простите за беспокойство.')
     ################
     #bot.answer_callback_message_query(callback_message.id)

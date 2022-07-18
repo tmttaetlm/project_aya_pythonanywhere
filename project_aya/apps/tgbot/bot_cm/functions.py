@@ -343,8 +343,14 @@ def check_and_delete_msg(bot, chat_id, msg_id, msg_time):
             except:
                 bot.send_message(248598993, 'Попытка удаления сообщения '+str(msg_id)+' в чате '+str(chat_id)+' неудачна')
 
-def confirm_ads(bot, admin_id, admin, mode, callback_message, postfactum):
-    vacancy_id = callback_message.data[callback_message.data.rfind('_')+1:len(callback_message.data)]
+def confirm_ads(bot, admin_id, admin, mode, callback_message):
+    arr = callback_message.data.split('_')
+    if len(arr) == 3:
+        vacancy_id = arr[2]
+        postfactum = False
+    elif len(arr) == 4:
+        vacancy_id = arr[3]
+        postfactum = True
     _vacancy = Vacancy.objects.get(id=vacancy_id)
     author = User.objects.get(chat_id=_vacancy.chat_id)
     service_msg = ''
