@@ -340,9 +340,11 @@ def check_and_delete_msg(bot, chat_id, msg_id, msg_time):
                 bot.delete_message(chat_id, msg_id)
                 msg_id = None
                 msg_time = None
+                return True
             except:
                 bot.send_message(248598993, 'Попытка удаления сообщения '+str(msg_id)+' в чате '+str(chat_id)+' неудачна')
-
+                return False
+                
 def confirm_ads(bot, admin_id, admin, mode, callback_message):
     arr = callback_message.data.split('_')
     if len(arr) == 3:

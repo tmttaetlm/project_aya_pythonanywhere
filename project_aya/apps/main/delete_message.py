@@ -19,6 +19,10 @@ try:
         utc_time = datetime.fromtimestamp(msg.msg_date, timezone.utc)
         local_time = utc_time.astimezone()
         if local_time >= msg.delete_date:
-            check_and_delete_msg(bot, msg.chat_id, msg.msg_id, local_time)
+            res = check_and_delete_msg(bot, msg.chat_id, msg.msg_id, local_time)
+            if res:
+                msg.deleted = 1
+            else:
+                msg.deleted = 2
 except Message.DoesNotExist:
     print('Для удаления ничего не найдено')
