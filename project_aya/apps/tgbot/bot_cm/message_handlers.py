@@ -31,7 +31,8 @@ def message_handler(bot, message):
                 bot.send_message(message.chat.id, messages[5].text, reply_to_message_id=message.message_id)
                 #bot.send_message(248598993, msg, parse_mode='HTML')
             else:
-                bot.send_message(message.chat.id, 'Это вакансия?', reply_markup=keyboard('ads_question', {'msg': message.message_id, 'chat': message.chat.id}), reply_to_message_id=message.message_id)
+                res = bot.send_message(message.chat.id, 'Это вакансия?', reply_markup=keyboard('ads_question', {'msg': message.message_id, 'chat': message.chat.id}), reply_to_message_id=message.message_id)
+                DeleteMessage.objects.create(chat_id=message.chat.id, msg_id=res.id, msg_date=timezone.now(), delete_date=timezone.now() + timedelta(hours=1))
                 #bot.send_message(248598993, msg)
             break
 

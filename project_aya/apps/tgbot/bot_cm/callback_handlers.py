@@ -1,6 +1,6 @@
 from datetime import datetime, timezone, timedelta
 from django.utils import timezone
-from main.models import User, Vacancy, Message, Info, Specialisation
+from main.models import User, Vacancy, Message, Info, Specialisation, DeleteMessage
 from .keyboards import keyboard
 from .functions import registration_customer, registration_specialist, search_master, not_confirmed_users, not_confirmed_ads, check_and_delete_msg, confirm_ads
 
@@ -260,6 +260,7 @@ def callback(bot, callback_message):
         utc_time = datetime.fromtimestamp(callback_message.message.date, timezone.utc)
         local_time = utc_time.astimezone()
         check_and_delete_msg(bot, callback_message.message.chat.id, callback_message.message.id, local_time)
-        bot.send_message(callback_message.message.chat.id, 'Простите за беспокойство.')
+        res = bot.send_message(callback_message.message.chat.id, 'Простите за беспокойство.')
+        DeleteMessage.objects.create(chat_id=callback_message.message.chat.id, msg_id=res.id, msg_date=timezone.now(), delete_date=timezone.now() + timedelta(minutes=5))
     ################
     #bot.answer_callback_message_query(callback_message.id)

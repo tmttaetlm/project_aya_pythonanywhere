@@ -85,3 +85,17 @@ class Words(models.Model):
     class Meta:
         verbose_name = 'Слово для рекции'
         verbose_name_plural = 'Слова для рекций'
+
+class DeleteMessage(models.Model):
+    chat_id = models.IntegerField('ID телеграм чата')
+    msg_id = models.IntegerField('ID сообщения')
+    msg_date = models.DateTimeField('Дата сообщения', null = True)
+    delete_date = models.DateTimeField('Дата удаления', null = True)
+    deleted = models.BooleanField('Удалён', default=False)
+
+    def __str__(self):
+        return self.deleted
+
+    class Meta:
+        verbose_name = 'Сообщение для удаления'
+        verbose_name_plural = 'Сообщения для удаления'
