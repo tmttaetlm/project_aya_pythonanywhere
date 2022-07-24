@@ -2,7 +2,7 @@ import re
 from datetime import timedelta
 from django.utils import timezone
 from django import forms
-from main.models import User, Message, Words, Info
+from main.models import User, Message, Words, Info, DeleteMessage
 from .keyboards import keyboard
 from .functions import registration_customer, registration_specialist, create_one_click_vacancy, check_and_delete_msg
 
